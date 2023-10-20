@@ -1,4 +1,8 @@
 mod errors;
+mod scanner;
+mod parser;
+mod compiler;
+
 use std::path::Path;
 use std::{env, fs::read_to_string, fs::metadata};
 use crate::errors::KeyScriptError;
