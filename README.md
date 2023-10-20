@@ -15,26 +15,15 @@
 - For loops are c styled: `for (int i = 0; i < 10; i++) { code }`
 - While loop: `while bool { code }`
 - Scoping: keyscript uses `{}` for scoping.
-# stopped
-- module system and importing:   
-- I/O: keyscript uses `print()` for output and `std::read()` for input.
-- klang allows custom format inside strings `"hi {1+2}"` would be `hi 3`, but dont allow recursive formatting (formatting inside formatting).
-- meaning you can print anything you want using 1 print statement! for example: `print("3 pi is: {3 * std::pi()}");`
-- Error handling: Klang does not feature explicit error handling. Errors are handled by the parser, scanner, and compiler, and reported to the developer in the terminal.
-- Functions: All functions in Klang are public.
-- the way you declare a function is: `fn name(arg1, arg2) {`
-- you can then use return value; or return; to quit the function and return a value.
-- Example:
-```klang
-fn add(int1, int2) {
-    return int1 + int2;
-}
-print("3 + 5 = {add(3, 5)}");
+- module system and importing: `use {function} from "./file.kys";`
+- I/O: keyscript uses `print()` for output and `unknown std function` for input.
+- keyscript allows custom format inside strings `"hi {1+2}"` would be `hi 3`, and also string concatenation `"hi" + " " + "there"` would be `hi there`.
+- Error handling: `prob a later feature`
+- functions: keyscript uses the return type with a fucntion name and (parameters) syntax.
+- you can also declare a function public by using `pub` before the function name.
 ```
-- klang offers a veriety of native functions, each runs in rust! here are the native functions klang offers:
-- Math Functions: `sin` `cos` `tan` `sqrt` `pow` `ln` `log` `round` `abs` `min` `max` `pi`
-- Random Functions: `random` `range` `randbool`
-- Time Functions: `time` `sleep`
-- File I/O Functions: `readFile` `writeFile` `read`
-- Vector functions: `get(vec, index)` `set(vec, value, index)` `remove(vec, index)` `insert(vec, value, index)`
-- use them by doing `std::` and add the function name
+pub int add(int a, int b) {
+  return a + b;
+}
+```
+- you can call a function with named variables like `add(a=1, b=2)`
