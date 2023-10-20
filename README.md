@@ -37,3 +37,4 @@ pub int add(int a, int b) {
 - async
 - error handling
 - multithreading
+- foreach loop
