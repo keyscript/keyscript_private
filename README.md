@@ -17,7 +17,8 @@
 - Scoping: keyscript uses `{}` for scoping.
 - module system and importing: `use {function} from "./file.kys";`
 - I/O: keyscript uses `print()` for output and `unknown std function` for input.
-- keyscript allows custom format inside strings `"hi {1+2}"` would be `hi 3`, and also string concatenation `"hi" + " " + "there"` would be `hi there`.
+- keyscript allows custom format inside strings `"hi {1+2}"` would be `hi 3`
+- keyscript also allows string concatenation `"hi" + " " + "there"` would be `hi there`.
 - Error handling: `prob a later feature`
 - functions: keyscript uses the return type with a fucntion name and (parameters) syntax.
 - you can also declare a function public by using `pub` before the function name.
@@ -27,3 +28,12 @@ pub int add(int a, int b) {
 }
 ```
 - you can call a function with named variables like `add(a=1, b=2)`
+
+## possible future features
+
+- vectors
+- structs
+- classes
+- async
+- error handling
+- multithreading
