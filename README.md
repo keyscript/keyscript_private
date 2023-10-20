@@ -12,8 +12,8 @@
   code
   }`
 - Loops:
-- For loops are c styled: `for (int i = 0; i < 10; i++) { code }`
 - While loop: `while bool { code }`
+- for loops will be added later in rust style `for i in 0..10 { code }`
 - Scoping: keyscript uses `{}` for scoping.
 - module system and importing: `use {function} from "./file.kys";`
 - I/O: keyscript uses `print()` for output and `unknown std function` for input.
@@ -34,8 +34,8 @@ pub int add(int a, int b) {
 - classes
 - vectors
 - error handling
-- switch statements
-- async
-- multithreading
 - foreach loops
 - generators
+- switch statements
+- multithreading
+- async
