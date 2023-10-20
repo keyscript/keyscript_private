@@ -10,11 +10,12 @@ pub enum KeyScriptError {
 
 impl KeyScriptError {
     pub fn error(error_type: KeyScriptError, msg: Option<&str>, line: Option<usize>, filename: Option<&str>) {
+        error_type.print();
         if error_type != Self::Warning {
-            print!("{} ",format!("[{error_type:?}]").red());
+            print!("{} ",format!("[{}]", error_type.print()).red());
         }
         else {
-            print!("{} ",format!("[{error_type:?}]").yellow());
+            print!("{} ",format!("[{}]", error_type.print()).yellow());
         }
         if msg.is_some() {
             print!("{} ", msg.unwrap().red());
@@ -33,6 +34,16 @@ impl KeyScriptError {
             Self::ScannerError => (),
             KeyScriptError::Warning => (),
             _ => std::process::exit(0),
+        }
+    }
+
+    fn print(&self) -> String {
+        match self {
+            KeyScriptError::ScannerError => String::from("SCANNER ERROR"),
+            KeyScriptError::ParserError => String::from("PARSER ERROR"),
+            KeyScriptError::RuntimeError => String::from("RUNTIME ERROR"),
+            KeyScriptError::Error => String::from("ERROR"),
+            KeyScriptError::Warning => String::from("WARNING"),
         }
     }
 }
