@@ -31,12 +31,11 @@ pub int add(int a, int b) {
 
 ## possible future features
 
-- vectors
-- structs
 - classes
-- async
+- vectors
 - error handling
+- switch statements
+- async
 - multithreading
 - foreach loops
 - generators
-- switch statements
