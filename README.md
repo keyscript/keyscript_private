@@ -1,11 +1,10 @@
 # keyscript syntax
 
 - keyscript starts from a main function
-- Indentations are not mandatory, but it is strongly recommended to adhere to formal indentation rules for clean and readable code.
-- Klang has four simple types: bool, number, string, and vector.
-- Variable declaration: Use `let identifier = value` syntax, variables do not require an initial value.
-- Control flow: Klang uses `<`, `>`, `<=`, `>=`, `==`, `&&`, `||` for control flow.
-- Arithmetic operations: Klang uses `+`, `-`, `*`, `/`, `%` for basic arithmetic operations.
+- keyscript types: boolean, int, float, string, and array (vectors maybe later).
+- Variable declaration: Use `int identifier = value;` syntax, variables do not require an initial value.
+- Control flow: keyscript uses the `<`, `>`, `<=`, `>=`, `==`, `&&`, `||` operators for control flow.
+- Arithmetic operations: keyscript uses `+`, `-`, `*`, `/`, `%` for basic arithmetic operations.
 - If statement:
   `if expression {
   code
@@ -13,11 +12,12 @@
   code
   }`
 - Loops:
-- For loop: `for identifier in iterable { code }`
+- For loops are c styled: `for (int i = 0; i < 10; i++) { code }`
 - While loop: `while bool { code }`
-- Range: `int..int` (exclusive) `int..int..int3` (exclusive, with step size `int3`)
-- Scoping: Klang uses `{}` for scoping.
-- I/O: Klang uses `print()` for output and `std::read()` for input.
+- Scoping: keyscript uses `{}` for scoping.
+# stopped
+- module system and importing:   
+- I/O: keyscript uses `print()` for output and `std::read()` for input.
 - klang allows custom format inside strings `"hi {1+2}"` would be `hi 3`, but dont allow recursive formatting (formatting inside formatting).
 - meaning you can print anything you want using 1 print statement! for example: `print("3 pi is: {3 * std::pi()}");`
 - Error handling: Klang does not feature explicit error handling. Errors are handled by the parser, scanner, and compiler, and reported to the developer in the terminal.
