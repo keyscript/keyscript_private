@@ -1,1 +1,5 @@
-hello there
+pub int add(int a, int b) {
+    return a + b;
+}
+
+add(a=1.0, b=2)

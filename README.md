@@ -4,7 +4,7 @@
 - keyscript types: boolean, int, float, char, string, and array (vectors maybe later).
 - Variable declaration: Use `int identifier = value;` syntax, variables do not require an initial value.
 - Control flow: keyscript uses the `<`, `>`, `<=`, `>=`, `==`, `&&`, `||` operators for control flow.
-- Arithmetic operations: keyscript uses `+`, `-`, `*`, `/`, `%` for basic arithmetic operations.
+- Arithmetic operations: keyscript uses `+`, `-`, `*`, `/`, `%`, `+=`, `-=`, `*=`, `/=` for basic arithmetic operations.
 - If statement:
   `if expression {
   code

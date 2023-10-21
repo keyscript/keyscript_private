@@ -1,8 +1,8 @@
 mod errors;
 mod scanner;
+use scanner::Scanner;
 mod parser;
 mod compiler;
-
 use std::path::Path;
 use std::{env, fs::read_to_string, fs::metadata};
 use crate::errors::KeyScriptError;
@@ -36,7 +36,11 @@ fn main() {
             );
         } else {
             let source = read_to_string(path).expect("failed to read file");
-            println!("file's content: {}", source); // start scanning
+            let mut scanner = scanner::Scanner::new(&source, main_file_name);
+            let tokens = scanner.scan_tokens();
+            for token in tokens {
+                println!("{:?}", token);
+            }
         }
     }
 }
