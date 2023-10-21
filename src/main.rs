@@ -43,7 +43,8 @@ fn main() {
                 println!("{:?}", i);
             }
             let mut parser = parser::Parser::new(tokens, main_file_name);
-            println!("{:?}", parser.parse())
+            println!("{:?}", parser.parse());
+            compiler::wasm();
         }
     }
 }
