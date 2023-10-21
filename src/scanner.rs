@@ -205,7 +205,7 @@ impl<'a> Scanner<'a> {
             "string" => self.make_token(TokenType::String, None),
             "bool" => self.make_token(TokenType::Bool, None),
             "pub" => self.make_token(TokenType::Pub, None),
-            _ => self.make_token(TokenType::Identifier(identifier), None)
+            _ => self.make_token(TokenType::Identifier, Some(Value::String(identifier))),
         }
     }
 
@@ -229,7 +229,7 @@ impl<'a> Scanner<'a> {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     String(String),
     Float(f64),
@@ -244,7 +244,7 @@ pub struct Token{
     pub line: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum TokenType {
     LeftParen,
     RightParen,
@@ -276,7 +276,7 @@ pub enum TokenType {
     And,
     Or,
 
-    Identifier(String),
+    Identifier,
     String,
     Int,
     Float,
