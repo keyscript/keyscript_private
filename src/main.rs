@@ -1,6 +1,5 @@
 mod errors;
 mod scanner;
-use scanner::Scanner;
 mod parser;
 mod compiler;
 use std::path::Path;
