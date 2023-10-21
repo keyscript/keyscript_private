@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use std::fmt;
 use crate::errors::KeyScriptError;
 use std::iter::Peekable;
 use std::str::Chars;
@@ -26,35 +24,6 @@ impl<'a> Scanner<'a> {
     }
 
     pub fn scan_tokens(&mut self) -> Vec<Token> {
-        // let mut token_map: HashMap<char, TokenType> = HashMap::new();
-        // token_map.insert('(', TokenType::LeftParen);
-        // token_map.insert(')', TokenType::RightParen);
-        // token_map.insert('{', TokenType::LeftBrace);
-        // token_map.insert('}', TokenType::RightBrace);
-        // token_map.insert(',', TokenType::Comma);
-        // token_map.insert('.', TokenType::Dot);
-        // token_map.insert('-', TokenType::Minus);
-        // token_map.insert('+', TokenType::Plus);
-        // token_map.insert('*', TokenType::Star);
-        // token_map.insert('/', TokenType::Slash);
-        // token_map.insert('%', TokenType::Modulo);
-        // token_map.insert(';', TokenType::Semicolon);
-        // token_map.insert('[', TokenType::LeftSquare);
-        // token_map.insert(']', TokenType::RightSquare);
-        // token_map.insert('!', TokenType::Bang);
-        // token_map.insert('=', TokenType::Equal);
-        // token_map.insert('<', TokenType::Less);
-        // token_map.insert('>', TokenType::Greater);
-        //
-        //
-        // while let Some(ch) = self.chars.next() {
-        //     if let Some(token_type) = token_map.get(&ch) {
-        //         self.make_token(*token_type, None, None);
-        //     } else {
-        //         if let Some(&'=') = self.chars.peek() {}
-        //
-        //     }
-        // }
         while let Some(ch) = self.chars.next() {
             match ch {
                 '(' => self.make_token(TokenType::LeftParen, None),
@@ -266,7 +235,6 @@ pub enum Value {
     Float(f64),
     Int(i64),
     Bool(bool),
-    None,
 }
 
 #[derive(Debug, Clone)]
