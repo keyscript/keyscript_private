@@ -23,16 +23,16 @@ impl KeyScriptError {
             print!("{} ", "unknown error".red());
         }
         if line.is_some() {
-            print!("{} ", format!("at line {}", line.unwrap()).red());
+            print!("{} ", format!("{} line {}", "at".red(), line.unwrap()).blue());
         }
         if filename.is_some() {
-            println!("{}", format!("in file {}", filename.unwrap()).red());
+            println!("{}", format!("{} {}", "in file".red(), filename.unwrap()).blue());
         } else {
             println!();
         }
         match error_type {
             Self::ScannerError => (),
-            KeyScriptError::Warning => (),
+            Self::Warning => (),
             _ => std::process::exit(0),
         }
     }

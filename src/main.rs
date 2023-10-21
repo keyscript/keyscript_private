@@ -38,8 +38,12 @@ fn main() {
         } else {
             let source = read_to_string(path).expect("failed to read file");
             let mut scanner = scanner::Scanner::new(&source, main_file_name);
-            let mut parser = parser::Parser::new(scanner.scan_tokens(), main_file_name);
-            println!("{:?}", parser.parse());
+            let tokens = scanner.scan_tokens();
+            for i in &tokens {
+                println!("{:?}", i);
+            }
+            let mut parser = parser::Parser::new(tokens, main_file_name);
+            println!("{:?}", parser.parse())
         }
     }
 }
