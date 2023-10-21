@@ -146,9 +146,9 @@ impl<'a> Parser<'a> {
                 };
             }
             let mut vec: Vec<Expr> = Vec::new();
-            vec.push(self.unary()); //todo: change to self.logical()
+            vec.push(self.logical());
             while self.match_tokens(&[TokenType::Comma]) {
-                vec.push(self.unary()); //todo: change to self.logical()
+                vec.push(self.logical());
             }
             self.consume(TokenType::RightParen, "call must end with a \")\"");
             return Expr::Call {
