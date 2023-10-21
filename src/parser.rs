@@ -28,7 +28,7 @@ impl<'a> Parser<'a> {
             }
         }
         if self.match_tokens(&[TokenType::String]) {
-            return Expr::Literal(Value::String(match self.previous().literal
+            return Expr::Literal(Value::String(match self.previous().literal.clone()
             {
                 Some(Value::String(s)) => s,
                 _ => panic!("kys"),
@@ -42,7 +42,7 @@ impl<'a> Parser<'a> {
             }
         }
         if self.match_tokens(&[TokenType::Identifier]) {
-            return Expr::Variable(self.previous());
+            return Expr::Variable(self.previous().clone());
         }
         panic!("kys");
     }
@@ -63,7 +63,7 @@ impl<'a> Parser<'a> {
         &self.peek().tt == t_type
     }
 
-    fn advance(&mut self) -> Token {
+    fn advance(&mut self) -> &Token {
         if !self.is_at_end() {
             self.current += 1;
         }
@@ -72,11 +72,11 @@ impl<'a> Parser<'a> {
     fn is_at_end(&self) -> bool {
         self.peek().tt == TokenType::Eof
     }
-    fn peek(&self) -> Token {
-        self.tokens[self.current].clone()
+    fn peek(&self) -> &Token {
+        &self.tokens[self.current]
     }
-    fn previous(&self) -> Token {
-        self.tokens[self.current - 1].clone()
+    fn previous(&self) -> &Token {
+        &self.tokens[self.current - 1]
     }
     fn error(&self, msg: &str) {
         KeyScriptError::error(
@@ -85,7 +85,7 @@ impl<'a> Parser<'a> {
             Some(self.peek().line),
             Some(self.filename));
     }
-    fn consume(&mut self, t_type: TokenType, msg: &str) -> Token {
+    fn consume(&mut self, t_type: TokenType, msg: &str) -> &Token {
         if self.peek().tt == t_type {
             return self.advance();
         }
