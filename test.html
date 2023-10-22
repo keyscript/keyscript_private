@@ -80,20 +80,14 @@
 <script>
     // Load the WebAssembly module
     (async function() {
-        const response = await fetch('output.wasm');
-        const buffer = await response.arrayBuffer();
-        const module = new WebAssembly.Module(buffer);
-        const instance = new WebAssembly.Instance(module);
-
-        // Function to add two numbers
-        const addFunction = instance.exports.add;
-
-        // Function to handle button click
+        const response = await fetch("output.wasm");
+        const bytes = await response.arrayBuffer();
+        const { instance } = await WebAssembly.instantiate(bytes);
+        addFunction = instance.exports.add; // Assign addFunction from instance
         function addNumbers() {
             const number1 = parseInt(document.getElementById('number1').value, 10);
             const number2 = parseInt(document.getElementById('number2').value, 10);
-            const result = addFunction(number1, number2);
-            document.getElementById('result').textContent = result;
+            document.getElementById('result').textContent = addFunction(number1, number2);
         }
 
         window.addNumbers = addNumbers;
