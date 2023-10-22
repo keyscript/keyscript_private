@@ -16,8 +16,8 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Stmt {
-        self.expr_stmt()
+    pub fn parse(&mut self) -> Expr {
+        self.assignment()
     }
 
     fn expr_stmt(&mut self) -> Stmt {

@@ -82,6 +82,7 @@
     (async function() {
         const response = await fetch("output.wasm");
         const bytes = await response.arrayBuffer();
+        console.log("lets see if you wrote real code: " + WebAssembly.validate(bytes));
         const { instance } = await WebAssembly.instantiate(bytes);
         addFunction = instance.exports.add; // Assign addFunction from instance
         function addNumbers() {

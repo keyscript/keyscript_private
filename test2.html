@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebAssembly Test</title>
+</head>
+<body>
+<script>
+    fetch('output.wasm')
+        .then(response => response.arrayBuffer())
+        .then(bytes => {
+            console.log("lets see if you wrote real code: " + WebAssembly.validate(bytes));
+            return WebAssembly.instantiate(bytes)
+        })
+        .then(result => {
+            // Extract the WebAssembly instance and the exported function
+            console.log("the function returned: " + result.instance.exports.main());
+        })
+        .catch(error => {
+            console.error('Error loading WebAssembly:', error);
+        });
+</script>
+</body>
+</html>
