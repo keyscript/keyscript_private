@@ -54,9 +54,9 @@ fn main() {
 //todo list:
 //polish the error messages
 //add printing to the compiler
-//add string concatenation and interpolation
 //void functions
 //return types and enforce returns
+//add string concatenation and interpolation
 //kys command to generate sample code and html
 //try to add keyscript compile to npm run
 //release!
