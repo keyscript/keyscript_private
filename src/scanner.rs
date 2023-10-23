@@ -60,6 +60,13 @@ impl<'a> Scanner<'a> {
                     if let Some(&'=') = self.chars.peek() {
                         self.chars.next();
                         self.make_token(TokenType::SlashEqual, None);
+                    } else if let Some(&'/') = self.chars.peek() {
+                        while let Some(&ch) = self.chars.peek() {
+                            if ch == '\n' {
+                                break;
+                            }
+                            self.chars.next();
+                        }
                     } else {
                         self.make_token(TokenType::Slash, None);
                     }
@@ -146,7 +153,7 @@ impl<'a> Scanner<'a> {
         while let Some(&ch) = self.chars.peek() {
             if ch == '"' {
                 self.chars.next();
-                self.make_token(TokenType::String, Some(Value::String(string)));
+                self.make_token(TokenType::Value, Some(Value::String(string)));
                 return;
             }
             string.push(ch);
@@ -176,9 +183,9 @@ impl<'a> Scanner<'a> {
                     break;
                 }
             }
-            self.make_token(TokenType::Float, Some(Value::Float(number.parse::<f64>().unwrap())));
+            self.make_token(TokenType::Value, Some(Value::Float(number.parse::<f64>().unwrap())));
         } else {
-            self.make_token(TokenType::Int, Some(Value::Int(number.parse::<i64>().unwrap())));
+            self.make_token(TokenType::Value, Some(Value::Int(number.parse::<i64>().unwrap())));
         }
     }
 
@@ -198,8 +205,8 @@ impl<'a> Scanner<'a> {
             "while" => self.make_token(TokenType::While, None),
             "print" => self.make_token(TokenType::Print, None),
             "return" => self.make_token(TokenType::Return, None),
-            "true" => self.make_token(TokenType::Bool, Some(Value::Bool(true))),
-            "false" => self.make_token(TokenType::Bool, Some(Value::Bool(false))),
+            "true" => self.make_token(TokenType::Value, Some(Value::Bool(true))),
+            "false" => self.make_token(TokenType::Value, Some(Value::Bool(false))),
             "int" => self.make_token(TokenType::Int, None),
             "float" => self.make_token(TokenType::Float, None),
             "string" => self.make_token(TokenType::String, None),
@@ -281,6 +288,7 @@ pub enum TokenType {
     Int,
     Float,
     Bool,
+    Value,
     If,
     Else,
     While,

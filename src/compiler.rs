@@ -4,9 +4,11 @@ use wasm_encoder::{
     Module, TypeSection, ValType,
 };
 use std::fs;
+use colored::Colorize;
 use crate::{ast::Expr, scanner::{Value, TokenType}};
 use crate::ast::Stmt;
 use crate::errors::KeyScriptError;
+use wasmparser::Parser;
 
 //REMINDER of wasm structure:
 //first types
@@ -89,12 +91,21 @@ impl Compiler {
         let mut codes = CodeSection::new();
         let locals = vec![];
         let mut f = Function::new(locals);
-        self.compile_expr(&mut f, expr);
+        for stmt in code {
+            self.compile_stmt(&mut f, stmt);
+        }
         f.instruction(&Instruction::End);
         codes.function(&f);
         module.section(&codes);
 
         let wasm_bytes = module.finish();
+        let mut validator = Parser::new(0);
+        if let Err(e) = validator.parse(&wasm_bytes, false) {
+            println!("Validation error: {:?} please report to the devs!", e);
+            std::process::exit(0);
+        } else {
+            println!("{}", "Validation successful!".green());
+        }
         fs::write("output.wasm", &wasm_bytes).expect("Failed to write Wasm to file");
         fs::write("output.wat", wasmprinter::print_file("./output.wasm").unwrap()).expect("Failed to write Wat to file");
     }
@@ -102,12 +113,23 @@ impl Compiler {
     fn compile_stmt(&mut self, function: &mut Function, stmt: Stmt) {
         match stmt {
             Stmt::Print(expr) => {
-                self.compile_expr(function, *expr);
                 panic!("print isnt working yet") //todo learn how to print in wasm
             }
-            Stmt::Block(_) => {}
-            Stmt::Expression(_) => {}
-            Stmt::If { .. } => {}
+            Stmt::Block(
+                stmts
+            ) => {
+                for stmt in stmts {
+                    self.compile_stmt(function, stmt);
+                }
+            }
+            Stmt::Expression(expr) => {
+                self.compile_expr(function, expr);
+            }
+            Stmt::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {}
             Stmt::Var { .. } => {}
             Stmt::While { .. } => {}
             Stmt::For { .. } => {}
@@ -193,7 +215,7 @@ impl Compiler {
             //         _ => self.error("unreachable?"),
             //     }
             // }
-            _ => self.error("unreachable?"),
+            _ => Value::Int(0),
         }
     }
 

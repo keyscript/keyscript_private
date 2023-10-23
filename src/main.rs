@@ -45,7 +45,16 @@ fn main() {
             let mut parser = parser::Parser::new(tokens, main_file_name);
             let mut comp = compiler::Compiler::new();
             // println!("{:?}", parser.parse());
-            // comp.compile(parser.parse());
+            comp.compile(parser.parse());
         }
     }
 }
+
+//todo list:
+//finish the compiler and printing
+//polish the error messages
+//add string concatenation and interpolation
+//release!
+//add vectors
+//add hi(a=2)
+//start implementing features

@@ -23,10 +23,10 @@ impl KeyScriptError {
             print!("{} ", "unknown error".red());
         }
         if line.is_some() {
-            print!("{} ", format!("{} line {}", "at".red(), line.unwrap()).blue());
+            print!("{} ", format!("{} line {}", "at".red(), line.unwrap()).cyan());
         }
         if filename.is_some() {
-            println!("{}", format!("{} {}", "in file".red(), filename.unwrap()).blue());
+            println!("{}", format!("{} {}", "in file".red(), filename.unwrap()).cyan());
         } else {
             println!();
         }

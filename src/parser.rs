@@ -266,24 +266,12 @@ impl<'a> Parser<'a> {
     }
 
     fn primary(&mut self) -> Expr {
-        if self.match_tokens(&[TokenType::Bool]) {
-            return if self.previous().literal == Some(Value::Bool(true)) {
-                Expr::Literal(Value::Bool(true))
-            } else {
-                Expr::Literal(Value::Bool(false))
-            }
-        }
-        if self.match_tokens(&[TokenType::String]) {
-            return Expr::Literal(Value::String(match self.previous().literal.clone()
-            {
-                Some(Value::String(s)) => s,
-                _ => panic!("kys"),
-            }));
-        }
-        if self.match_tokens(&[TokenType::Int, TokenType::Float]) {
-            match self.previous().literal {
+        if self.match_tokens(&[TokenType::Value]) {
+            match self.previous().clone().literal {
+                Some(Value::Bool(b)) => return Expr::Literal(Value::Bool(b)),
                 Some(Value::Int(n)) => return Expr::Literal(Value::Int(n)),
                 Some(Value::Float(n)) => return Expr::Literal(Value::Float(n)),
+                Some(Value::String(s)) => return Expr::Literal(Value::String(s)),
                 _ => panic!("kys"),
             }
         }
