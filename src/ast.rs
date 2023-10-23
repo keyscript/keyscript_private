@@ -26,14 +26,13 @@ pub enum Expr {
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
-    Print(Value, usize),
-    Block(Vec<Stmt>, (usize, usize)),
+    Print(Value),
+    Block(Vec<Stmt>),
     Expression(Expr),
     If {
         condition: Expr,
-        block: Box<Stmt>,
-        else_block: Option<Box<Stmt>>,
-        lines: (usize, Option<usize>),
+        then_branch: Box<Stmt>,
+        else_branch: Option<Box<Stmt>>,
     },
     Var {
         name: Token,
@@ -42,7 +41,6 @@ pub enum Stmt {
     While {
         condition: Expr,
         block: Box<Stmt>,
-        line: usize,
     },
     For {
         identifier: Token,
@@ -55,5 +53,5 @@ pub enum Stmt {
         params: Vec<Token>,
         body: Box<Stmt>,
     },
-    Return(Option<Expr>, usize),
+    Return(Option<Expr>),
 }

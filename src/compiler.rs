@@ -54,8 +54,9 @@ pub fn wasm() {
 }
 
 pub struct Compiler {
-    pub module: Module,
-    pub vars: HashMap<String, u32>,
+    module: Module,
+    vars: HashMap<String, u32>,
+    funcs: HashMap<String, u32>,
 }
 
 impl Compiler {
@@ -63,10 +64,11 @@ impl Compiler {
         Compiler {
             module: Module::new(),
             vars: HashMap::new(),
+            funcs: HashMap::new(),
         }
     }
 
-    pub fn compile(&mut self, expr: Expr) {
+    pub fn compile(&mut self, code: Vec<Stmt>) {
         let mut module = Module::new();
 
         let mut types = TypeSection::new();
@@ -97,7 +99,25 @@ impl Compiler {
         fs::write("output.wat", wasmprinter::print_file("./output.wasm").unwrap()).expect("Failed to write Wat to file");
     }
 
-    fn compile_expr(&mut self, function: &mut Function,expr: Expr) -> Value {
+    fn compile_stmt(&mut self, function: &mut Function, stmt: Stmt) {
+        match stmt {
+            Stmt::Print(expr) => {
+                self.compile_expr(function, *expr);
+                panic!("print isnt working yet") //todo learn how to print in wasm
+            }
+            Stmt::Block(_) => {}
+            Stmt::Expression(_) => {}
+            Stmt::If { .. } => {}
+            Stmt::Var { .. } => {}
+            Stmt::While { .. } => {}
+            Stmt::For { .. } => {}
+            Stmt::Fn { .. } => {}
+            Stmt::Return(_) => {}
+            _ => self.error("unreachable?"),
+        }
+    }
+
+    fn compile_expr(&mut self, function: &mut Function, expr: Expr) -> Value {
         match expr {
             Expr::Grouping(expr) => self.compile_expr(function, *expr),
             Expr::Literal(val) => {
@@ -156,7 +176,24 @@ impl Compiler {
                 self.unary(function, &t1, operator.tt);
                 t1
             }
-            _ => Value::Int(0)
+            // Expr::Call {
+            //     callee,
+            //     arguments
+            // } => {
+            //     for arg in arguments {
+            //         self.compile_expr(function, arg);
+            //     }
+            //     match *callee {
+            //         Expr::Variable(t) => {
+            //             function.instruction(&Instruction::Call(match t.literal.unwrap() { //todo switch string to u32
+            //                 Value::String(s) => s,
+            //                 _ => panic!("kys"),
+            //             }))
+            //         }
+            //         _ => self.error("unreachable?"),
+            //     }
+            // }
+            _ => self.error("unreachable?"),
         }
     }
 

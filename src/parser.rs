@@ -16,8 +16,114 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse(&mut self) -> Expr {
-        self.assignment()
+    pub fn parse(&mut self) -> Vec<Stmt> {
+        let mut statements: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.declaration());
+        }
+        statements
+    }
+
+    fn declaration(&mut self) -> Stmt {
+        if self.match_tokens(&[TokenType::Bool, TokenType::Int, TokenType::Float, TokenType::String]) {
+            let t = self.previous().clone();
+            self.consume(TokenType::Identifier, "expected identifier after type declaration");
+            let name = self.previous().clone();
+            if self.match_tokens(&[TokenType::LeftParen]) {
+                return self.fn_decl(name, t);
+            } else {
+                return self.var_decl(name, t)
+            }
+        }
+        self.statement()
+    }
+
+    fn fn_decl(&mut self, name: Token, t: Token) -> Stmt {
+        let mut params: Vec<Token> = Vec::new();
+        while !self.check(&TokenType::RightParen) {
+            let iden = self.consume(TokenType::Identifier, "expected identifier after type declaration");
+            params.push(iden.clone());
+            self.consume(TokenType::Comma, "expected \",\" after identifier");
+        }
+        self.consume(TokenType::RightParen, "expected \")\" after function declaration");
+        let body = Box::new(self.block());
+        Stmt::Fn {
+            name,
+            params,
+            body,
+        }
+    }
+
+    fn var_decl(&mut self, name: Token, t: Token) -> Stmt {
+        let value = if self.match_tokens(&[TokenType::Equal]) {
+            Some(self.logical())
+        } else {
+            None
+        };
+        self.consume(TokenType::Semicolon, "expected \";\" after variable declaration");
+        Stmt::Var {
+            name,
+            value,
+        }
+    }
+
+    fn statement(&mut self) -> Stmt {
+        // if self.match_tokens(&[TokenType::Print]) { todo: figure out how to print in wasm
+        //     return self.print_stmt();
+        // }
+        if self.match_tokens(&[TokenType::Return]) {
+            return self.return_stmt();
+        }
+        if self.match_tokens(&[TokenType::If]) {
+            return self.if_stmt();
+        }
+        if self.match_tokens(&[TokenType::While]) {
+            return self.while_stmt();
+        }
+        self.expr_stmt()
+    }
+
+    fn return_stmt(&mut self) -> Stmt {
+        if self.match_tokens(&[TokenType::Semicolon]) {
+            return Stmt::Return(None);
+        }
+        let value = self.logical();
+        self.consume(TokenType::Semicolon, "expected \";\" after return statement");
+        Stmt::Return(Some(value))
+    }
+
+    fn if_stmt(&mut self) -> Stmt {
+        let condition = self.logical();
+        let then_branch = Box::new(self.block());
+        let else_branch = if self.match_tokens(&[TokenType::Else]) {
+            Some(Box::new(self.block()))
+        } else {
+            None
+        };
+        Stmt::If {
+            condition,
+            then_branch,
+            else_branch,
+        }
+    }
+
+    fn while_stmt(&mut self) -> Stmt {
+        let condition = self.logical();
+        let block = Box::new(self.block());
+        Stmt::While {
+            condition,
+            block,
+        }
+    }
+
+    fn block(&mut self) -> Stmt {
+        self.consume(TokenType::LeftBrace, "block must start with a \"{\"");
+        let mut statements: Vec<Stmt> = Vec::new();
+        while !self.is_at_end() && !self.check(&TokenType::RightBrace) {
+            statements.push(self.declaration());
+        }
+        self.consume(TokenType::RightBrace, "block must end with a \"}\"");
+        Stmt::Block(statements)
     }
 
     fn expr_stmt(&mut self) -> Stmt {
@@ -26,9 +132,9 @@ impl<'a> Parser<'a> {
         stmt
     }
 
-    pub fn assignment(&mut self) -> Expr {
+    fn assignment(&mut self) -> Expr {
         let identifier = self.logical();
-        if self.match_tokens(&[TokenType::Equal]) {
+        if self.match_tokens(&[TokenType::Equal, TokenType::PlusEqual, TokenType::MinusEqual, TokenType::StarEqual, TokenType::SlashEqual]) {
             let value = self.logical();
             match identifier {
                 Expr::Variable(name) => {
@@ -46,7 +152,7 @@ impl<'a> Parser<'a> {
         identifier
     }
 
-    pub fn logical(&mut self) -> Expr {
+    fn logical(&mut self) -> Expr {
         let mut left: Expr = self.equality();
         while self.match_tokens(&[TokenType::And, TokenType::Or]) {
             let operator = self.previous().clone();
