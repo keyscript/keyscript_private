@@ -1,4 +1,4 @@
-use crate::scanner::{Token, Value};
+use crate::scanner::{Token, TokenType, Value};
 
 #[derive(Clone, Debug)]
 pub enum Expr {
@@ -27,7 +27,7 @@ pub enum Expr {
 #[derive(Clone, Debug)]
 pub enum Stmt {
     Print(Value),
-    Block(Vec<Stmt>),
+    Block{stmts: Vec<Stmt>, vars: Vec<TokenType>},
     Expression(Expr),
     If {
         condition: Expr,
@@ -37,21 +37,17 @@ pub enum Stmt {
     Var {
         name: Token,
         value: Option<Expr>,
+        t: TokenType,
     },
     While {
         condition: Expr,
         block: Box<Stmt>,
     },
-    For {
-        identifier: Token,
-        iterable: Expr,
-        block: Box<Stmt>,
-        line: usize,
-    },
     Fn {
-        name: Token,
-        params: Vec<Token>,
+        name: String,
+        params: Vec<(TokenType, Token)>,
         body: Box<Stmt>,
+        return_type: TokenType,
     },
-    Return(Option<Expr>),
+    Return(Expr),
 }

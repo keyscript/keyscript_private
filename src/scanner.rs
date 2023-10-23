@@ -244,6 +244,15 @@ pub enum Value {
     Bool(bool),
 }
 
+impl Value {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Value::String(string) => string.as_str(),
+            _ => panic!("expected string"),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Token{
     pub tt: TokenType,

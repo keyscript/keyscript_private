@@ -3,7 +3,7 @@ use colored::*;
 pub enum KeyScriptError {
     ScannerError,
     ParserError,
-    RuntimeError,
+    CompilerError,
     Error,
     Warning,
 }
@@ -41,7 +41,7 @@ impl KeyScriptError {
         match self {
             KeyScriptError::ScannerError => String::from("SCANNER ERROR"),
             KeyScriptError::ParserError => String::from("PARSER ERROR"),
-            KeyScriptError::RuntimeError => String::from("RUNTIME ERROR"),
+            KeyScriptError::CompilerError => String::from("COMPILER ERROR"),
             KeyScriptError::Error => String::from("ERROR"),
             KeyScriptError::Warning => String::from("WARNING"),
         }

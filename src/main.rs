@@ -43,17 +43,22 @@ fn main() {
             //     println!("{:?}", i);
             // }
             let mut parser = parser::Parser::new(tokens, main_file_name);
-            let mut comp = compiler::Compiler::new();
+            let mut comp = compiler::Compiler::new(parser.parse(), parser.vars);
             // println!("{:?}", parser.parse());
-            comp.compile(parser.parse());
+            comp.compile();
+
         }
     }
 }
 
 //todo list:
-//finish the compiler and printing
 //polish the error messages
+//add printing to the compiler
 //add string concatenation and interpolation
+//void functions
+//return types and enforce returns
+//kys command to generate sample code and html
+//try to add keyscript compile to npm run
 //release!
 //add vectors
 //add hi(a=2)

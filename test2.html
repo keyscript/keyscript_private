@@ -2,22 +2,46 @@
 <html>
 <head>
     <title>WebAssembly Test</title>
+    <style>
+        body {
+            background-color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #output {
+            color: white;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        #error {
+            color: red;
+            font-size: 24px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
+<div id="output"></div>
+<div id="error"></div>
 <script>
     fetch('output.wasm')
         .then(response => response.arrayBuffer())
         .then(bytes => {
-            console.log("lets see if you wrote real code: " + WebAssembly.validate(bytes));
-            return WebAssembly.instantiate(bytes)
+            return WebAssembly.instantiate(bytes);
         })
         .then(result => {
-            // Extract the WebAssembly instance and the exported function
-            console.log("the function returned: " + result.instance.exports.main());
+            console.log("running wasm");
+            const returnValue = result.instance.exports.main();
+            document.getElementById('output').textContent = `Function returned: ${returnValue}`;
         })
         .catch(error => {
-            console.error('Error loading WebAssembly:', error);
-        });
+            document.getElementById('error').textContent = `Error loading WebAssembly: ${error.message}`;
+        })
 </script>
 </body>
 </html>

@@ -5,6 +5,7 @@ pub struct Parser<'a> {
     pub tokens: Vec<Token>,
     current: usize,
     filename: &'a str,
+    pub vars: Vec<TokenType>,
 }
 
 impl<'a> Parser<'a> {
@@ -13,13 +14,20 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0,
             filename,
+            vars: Vec::new()
         }
     }
 
     pub fn parse(&mut self) -> Vec<Stmt> {
         let mut statements: Vec<Stmt> = Vec::new();
         while !self.is_at_end() {
-            statements.push(self.declaration());
+            let decl = self.declaration();
+            match decl {
+                Stmt::Fn { name, params, body, return_type } => {
+                    statements.insert(0, Stmt::Fn { name, params, body, return_type });
+                }
+                _ => statements.push(decl),
+            }
         }
         statements
     }
@@ -30,27 +38,56 @@ impl<'a> Parser<'a> {
             self.consume(TokenType::Identifier, "expected identifier after type declaration");
             let name = self.previous().clone();
             if self.match_tokens(&[TokenType::LeftParen]) {
-                return self.fn_decl(name, t);
+                return self.fn_decl(name, t.tt);
             } else {
+                self.vars.push(t.tt);
                 return self.var_decl(name, t)
             }
         }
         self.statement()
     }
 
-    fn fn_decl(&mut self, name: Token, t: Token) -> Stmt {
-        let mut params: Vec<Token> = Vec::new();
+    fn block_declaration(&mut self, vars: &mut Vec<TokenType>) -> Stmt {
+        if self.match_tokens(&[TokenType::Bool, TokenType::Int, TokenType::Float, TokenType::String]) {
+            let t = self.previous().clone();
+            self.consume(TokenType::Identifier, "expected identifier after type declaration");
+            let name = self.previous().clone();
+            if self.match_tokens(&[TokenType::LeftParen]) {
+                return self.fn_decl(name, t.tt);
+            } else {
+                vars.push(t.tt);
+                return self.var_decl(name, t)
+            }
+        }
+        self.statement()
+    }
+
+    fn fn_decl(&mut self, name: Token, return_type: TokenType) -> Stmt {
+        let mut params: Vec<(TokenType, Token)> = Vec::new();
+        if self.match_tokens(&[TokenType::Bool, TokenType::Int, TokenType::Float, TokenType::String]) {
+            let t = self.previous().tt;
+            let identifier = self.consume(TokenType::Identifier, "expected identifier after type declaration");
+            params.push((t, identifier.clone()));
+        }
         while !self.check(&TokenType::RightParen) {
-            let iden = self.consume(TokenType::Identifier, "expected identifier after type declaration");
-            params.push(iden.clone());
             self.consume(TokenType::Comma, "expected \",\" after identifier");
+            if !self.match_tokens(&[TokenType::Bool, TokenType::Int, TokenType::Float, TokenType::String]) {
+                self.error("expected type declaration after comma");
+            }
+            let t = self.previous().tt;
+            let identifier = self.consume(TokenType::Identifier, "expected identifier after type declaration");
+            params.push((t, identifier.clone()));
         }
         self.consume(TokenType::RightParen, "expected \")\" after function declaration");
         let body = Box::new(self.block());
         Stmt::Fn {
-            name,
+            name: match name.literal {
+                Some(Value::String(s)) => s,
+                _ => panic!("unreachable?"),
+            },
             params,
             body,
+            return_type,
         }
     }
 
@@ -64,6 +101,7 @@ impl<'a> Parser<'a> {
         Stmt::Var {
             name,
             value,
+            t: t.tt,
         }
     }
 
@@ -85,11 +123,11 @@ impl<'a> Parser<'a> {
 
     fn return_stmt(&mut self) -> Stmt {
         if self.match_tokens(&[TokenType::Semicolon]) {
-            return Stmt::Return(None);
+            self.error("expected expression after return statement");
         }
         let value = self.logical();
         self.consume(TokenType::Semicolon, "expected \";\" after return statement");
-        Stmt::Return(Some(value))
+        Stmt::Return(value)
     }
 
     fn if_stmt(&mut self) -> Stmt {
@@ -118,16 +156,21 @@ impl<'a> Parser<'a> {
 
     fn block(&mut self) -> Stmt {
         self.consume(TokenType::LeftBrace, "block must start with a \"{\"");
-        let mut statements: Vec<Stmt> = Vec::new();
+        let mut vars: Vec<TokenType> = Vec::new();
+        let mut stmts: Vec<Stmt> = Vec::new();
         while !self.is_at_end() && !self.check(&TokenType::RightBrace) {
-            statements.push(self.declaration());
+            stmts.push(self.block_declaration(&mut vars));
         }
         self.consume(TokenType::RightBrace, "block must end with a \"}\"");
-        Stmt::Block(statements)
+        Stmt::Block{stmts, vars}
     }
 
     fn expr_stmt(&mut self) -> Stmt {
-        let stmt = Stmt::Expression(self.assignment());
+        let expr = self.assignment();
+        if let Expr::Variable(_) = expr {
+            self.error("cannot access a variable on its own, use it in an expression");
+        }
+        let stmt = Stmt::Expression(expr);
         self.consume(TokenType::Semicolon, "missing ; at the end of the line");
         stmt
     }
