@@ -106,9 +106,9 @@ impl<'a> Parser<'a> {
     }
 
     fn statement(&mut self) -> Stmt {
-        // if self.match_tokens(&[TokenType::Print]) { todo: figure out how to print in wasm
-        //     return self.print_stmt();
-        // }
+        if self.match_tokens(&[TokenType::Print]) {
+            return self.print_stmt();
+        }
         if self.match_tokens(&[TokenType::Return]) {
             return self.return_stmt();
         }
@@ -119,6 +119,12 @@ impl<'a> Parser<'a> {
             return self.while_stmt();
         }
         self.expr_stmt()
+    }
+
+    fn print_stmt(&mut self) -> Stmt {
+        let expr = self.logical();
+        self.consume(TokenType::Semicolon, "expected \";\" after print statement");
+        Stmt::Print(expr)
     }
 
     fn return_stmt(&mut self) -> Stmt {
@@ -178,12 +184,39 @@ impl<'a> Parser<'a> {
     fn assignment(&mut self) -> Expr {
         let identifier = self.logical();
         if self.match_tokens(&[TokenType::Equal, TokenType::PlusEqual, TokenType::MinusEqual, TokenType::StarEqual, TokenType::SlashEqual]) {
-            let value = self.logical();
             match identifier {
                 Expr::Variable(name) => {
-                    return Expr::Assign {
-                        name,
-                        value: Box::new(value),
+                    match self.previous().tt {
+                        TokenType::Equal => {
+                            return Expr::Assign {
+                                name,
+                                value: Box::new(self.logical()),
+                            }
+                        }
+                        TokenType::PlusEqual | TokenType::MinusEqual | TokenType::StarEqual | TokenType::SlashEqual => {
+                            return Expr::Assign {
+                                name: name.clone(),
+                                value: Box::new(Expr::Binary {
+                                    left: Box::new(Expr::Variable(name)),
+                                    operator: Token {
+                                        tt: match self.previous().tt {
+                                            TokenType::PlusEqual => TokenType::Plus,
+                                            TokenType::MinusEqual => TokenType::Minus,
+                                            TokenType::StarEqual => TokenType::Star,
+                                            TokenType::SlashEqual => TokenType::Slash,
+                                            _ => panic!("unreachable?"),
+                                        },
+                                        literal: None,
+                                        line: 0,
+                                    },
+                                    right: Box::new(self.logical()),
+                                }),
+                            }
+                        }
+                        _ => {
+                            self.error("value incorrect");
+                            panic!();
+                        }
                     }
                 }
                 _ => {
@@ -243,7 +276,7 @@ impl<'a> Parser<'a> {
     }
 
     fn term(&mut self) -> Expr {
-        let mut left: Expr = self.factor();
+        let left: Expr = self.factor();
         while self.match_tokens(&[TokenType::Plus, TokenType::Minus]) {
             let operator = self.previous().clone();
             let right: Expr = self.term();

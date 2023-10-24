@@ -26,7 +26,7 @@ pub enum Expr {
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
-    Print(Value),
+    Print(Expr),
     Block{stmts: Vec<Stmt>, vars: Vec<TokenType>},
     Expression(Expr),
     If {

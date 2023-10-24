@@ -6,6 +6,7 @@ mod ast;
 
 use std::path::Path;
 use std::{env, fs::read_to_string, fs::metadata};
+use std::io::Write;
 use crate::errors::KeyScriptError;
 
 fn main() {
@@ -17,7 +18,77 @@ fn main() {
             None,
             None);
     }
-    let file_name = &args[1];
+    let file_name;
+    let mut is_wat = true;
+    if &args[1] == "init" {
+        is_wat = false;
+        let loop_code = "int i = 1;\nwhile i < 10 {\n    print(i);\n    i += 1;\n}";
+        let mut file = std::fs::File::create("index.kys").unwrap();
+        file.write_all(loop_code.as_bytes()).expect("Failed to write to file");
+        let html_code = r#"<!DOCTYPE html>
+<html>
+<head>
+    <title>WebAssembly Test</title>
+    <style>
+        body {
+            background-color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #output {
+            color: white;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        #error {
+            color: red;
+            font-size: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div id="output"></div>
+<div id="error"></div>
+<script>
+    fetch('index.wasm')
+        .then(response => response.arrayBuffer())
+        .then(bytes => {
+            return WebAssembly.instantiate(bytes, {
+                console: {
+                    log: value => {
+                        console.log(value);
+                    },
+                }});
+        })
+        .then(result => {
+            const returnValue = result.instance.exports.main();
+            if (returnValue) {
+                document.getElementById('output').textContent = `Function returned: ${returnValue}`;
+            } else {
+                document.getElementById('output').textContent = `No output, check the console`;
+            }
+
+        })
+        .catch(error => {
+            document.getElementById('error').textContent = `Error loading WebAssembly: ${error.message}`;
+        })
+</script>
+</body>
+</html>
+"#;
+
+        let mut file = std::fs::File::create("index.html").unwrap();
+        file.write_all(html_code.as_bytes()).expect("Failed to write HTML code to file");
+        file_name = "index.kys";
+    } else {
+        file_name = &args[1];
+    }
     let path = Path::new(&file_name);
     let main_file_name = path.file_name().unwrap().to_str().unwrap();
     if args.len() == 2 {
@@ -43,9 +114,9 @@ fn main() {
             //     println!("{:?}", i);
             // }
             let mut parser = parser::Parser::new(tokens, main_file_name);
-            let mut comp = compiler::Compiler::new(parser.parse(), parser.vars);
+            let mut comp = compiler::Compiler::new(parser.parse(), parser.vars, file_name);
             // println!("{:?}", parser.parse());
-            comp.compile();
+            comp.compile(is_wat);
 
         }
     }
@@ -53,10 +124,10 @@ fn main() {
 
 //todo list:
 //polish the error messages
-//add printing to the compiler
+//add string concatenation
+//add printing to the compiler- strings
 //void functions
 //return types and enforce returns
-//add string concatenation and interpolation
 //kys command to generate sample code and html
 //try to add keyscript compile to npm run
 //release!
