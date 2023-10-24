@@ -22,7 +22,12 @@ fn main() {
     let mut is_wat = true;
     if &args[1] == "init" {
         is_wat = false;
-        let loop_code = "int i = 1;\nwhile i < 10 {\n    print(i);\n    i += 1;\n}";
+        let loop_code = r#"int fib(int n) {
+    if n < 2 {
+        return n;
+    }
+    return fib(n - 1) + fib(n - 2);
+}"#;
         let mut file = std::fs::File::create("index.kys").unwrap();
         file.write_all(loop_code.as_bytes()).expect("Failed to write to file");
         let html_code = r#"<!DOCTYPE html>
@@ -56,18 +61,23 @@ fn main() {
 <div id="output"></div>
 <div id="error"></div>
 <script>
-    fetch('index.wasm')
+    let imports = {
+        wasm: {
+            memory: new WebAssembly.Memory({initial: 256}), // 1 page = 64KB
+        },
+        console: {
+            log: function (offset, length) {
+                console.log(new TextDecoder('utf8').decode(new Uint8Array(imports.wasm.memory.buffer, offset, length)));
+            }
+        }
+    };
+    fetch('output.wasm')
         .then(response => response.arrayBuffer())
         .then(bytes => {
-            return WebAssembly.instantiate(bytes, {
-                console: {
-                    log: value => {
-                        console.log(value);
-                    },
-                }});
+            return WebAssembly.instantiate(bytes, imports)
         })
         .then(result => {
-            const returnValue = result.instance.exports.main();
+            const returnValue = result.instance.exports.fib(BigInt(40));
             if (returnValue) {
                 document.getElementById('output').textContent = `Function returned: ${returnValue}`;
             } else {
