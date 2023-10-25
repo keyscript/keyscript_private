@@ -136,9 +136,10 @@ fn main() {
 
 //todo list:
 //polish the error messages
-//debug strings when assigning.
-//auto generate functions
+//auto generate js functions
 //release!
+//infinite loop detection
+//strings in loops (how tf do you use strings in wasm)
 //arrays
 //try to add keyscript compile to npm run
 //start implementing features

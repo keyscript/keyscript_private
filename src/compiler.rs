@@ -353,8 +353,8 @@ impl Compiler {
                 }
                 function.instruction(&Instruction::Return);
             }
-            Stmt::Break => {
-                function.instruction(&Instruction::Br(0));
+            Stmt::Break(n) => {
+                function.instruction(&Instruction::Br(n as u32 + 1));
             }
             _ => self.error("unreachable?"),
         }
