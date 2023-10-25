@@ -138,6 +138,7 @@ fn main() {
 //polish the error messages
 //debug
 //break keyword
+//auto generate functions
 //release!
 //arrays
 //try to add keyscript compile to npm run

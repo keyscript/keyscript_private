@@ -43,7 +43,7 @@ impl<'a> Parser<'a> {
                 if t.tt == TokenType::String {
                     self.error("functions cannot return a string, use the main script or a void function");
                 }
-                if let Value::String(n) = name.literal.clone() {
+                if let Value::String(n) = name.literal.clone().unwrap() {
                     if n == "main" {
                         self.error("cant have a function called main, because the main script is called main");
                     }
