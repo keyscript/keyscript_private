@@ -574,12 +574,10 @@ impl Compiler {
     fn add_strings(&mut self, function: &mut Function, t1: i32, t2: i32) -> i32 {
         //takes 2 indexes to strings and return an index to the new string
         self.offsets.get(&t1).unwrap_or_else(|| {
-            println!("{:?} {}", self.offsets, t1);
             self.error("undefined string");
             panic!()
         });
         self.offsets.get(&t2).unwrap_or_else(|| {
-            println!("{:?} {}", self.offsets, t2);
             self.error("undefined string");
             panic!()
         });
@@ -604,7 +602,6 @@ impl Compiler {
 
     fn print_wasm(&mut self, f: &mut Function, offset: i32) {
         let length = self.offsets.get(&offset).unwrap_or_else(|| {
-            println!("{:?} {}", self.offsets, offset);
             self.error("undefined string");
             panic!()
         });
