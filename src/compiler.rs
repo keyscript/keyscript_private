@@ -176,7 +176,24 @@ impl Compiler {
                 body,
                 return_type: _,
             } = i {
-                let locals = vec![];
+                let mut locals = vec![];
+                match *body.clone() {
+                    Stmt::Block {
+                        vars,
+                        ..
+                    } => {
+                        for var in vars {
+                            match var {
+                                TokenType::Int => locals.push((1, ValType::I64)),
+                                TokenType::Float => locals.push((1, ValType::F64)),
+                                TokenType::Bool => locals.push((1, ValType::I32)),
+                                TokenType::String => locals.push((1, ValType::I32)),
+                                _ => self.error("unreachable?"),
+                            }
+                        }
+                    }
+                    _ => self.error("unreachable?"),
+                }
                 let mut f = Function::new(locals);
                 for param in params {
                     self.vars.insert(match param.1.literal.clone().unwrap() {

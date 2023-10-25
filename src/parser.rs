@@ -58,7 +58,8 @@ impl<'a> Parser<'a> {
             self.consume(TokenType::Identifier, "expected identifier after type declaration");
             let name = self.previous().clone();
             if self.match_tokens(&[TokenType::LeftParen]) {
-                return self.fn_decl(name, t.tt);
+                self.error("cannot have a function declaration inside a block");
+                panic!("kys")
             } else {
                 vars.push(t.tt);
                 return self.var_decl(name, t)
@@ -187,10 +188,49 @@ impl<'a> Parser<'a> {
         if enforce_return_type.is_some() {
             self.return_type = enforce_return_type.unwrap();
         }
-        let mut vars: Vec<TokenType> = Vec::new();
+        let mut vars1: Vec<TokenType> = Vec::new();
         let mut stmts: Vec<Stmt> = Vec::new();
         while !self.is_at_end() && !self.check(&TokenType::RightBrace) {
-            stmts.push(self.block_declaration(&mut vars));
+            let stmt = self.block_declaration(&mut vars1);
+            match stmt.clone() {
+                Stmt::If {then_branch, else_branch, ..} => {
+                    match *then_branch.clone() {
+                        Stmt::Block {vars, ..} => {
+                            for var in vars {
+                                vars1.push(var);
+                            }
+                        }
+                        _ => {}
+                    }
+                    if let Some(else_branch) = else_branch {
+                        match *else_branch {
+                            Stmt::Block {vars, ..} => {
+                                for var in vars {
+                                    vars1.push(var);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                Stmt::While {block, ..} => {
+                    match *block {
+                        Stmt::Block {vars, ..} => {
+                            for var in vars {
+                                vars1.push(var);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                Stmt::Block {vars, ..} => {
+                    for var in vars {
+                        vars1.push(var);
+                    }
+                }
+                _ => {}
+            }
+            stmts.push(stmt);
             if let Stmt::Return {..} = stmts[stmts.len() - 1] {
                 had_return = true;
             }
@@ -208,7 +248,7 @@ impl<'a> Parser<'a> {
             self.return_type = TokenType::Void;
         }
         self.consume(TokenType::RightBrace, "block must end with a \"}\"");
-        Stmt::Block{stmts, vars}
+        Stmt::Block{stmts, vars: vars1}
     }
 
     fn expr_stmt(&mut self) -> Stmt {
