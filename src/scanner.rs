@@ -212,6 +212,7 @@ impl<'a> Scanner<'a> {
             "string" => self.make_token(TokenType::String, None),
             "bool" => self.make_token(TokenType::Bool, None),
             "void" => self.make_token(TokenType::Void, None),
+            "break" => self.make_token(TokenType::Break, None),
             _ => self.make_token(TokenType::Identifier, Some(Value::String(identifier))),
         }
     }
@@ -308,6 +309,7 @@ pub enum TokenType {
     Float,
     Bool,
     Void,
+    Break,
     Value,
     If,
     Else,

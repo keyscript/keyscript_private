@@ -136,7 +136,7 @@ fn main() {
 
 //todo list:
 //polish the error messages
-//debug
+//debug strings when assigning.
 //break keyword
 //auto generate functions
 //release!

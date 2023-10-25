@@ -57,10 +57,18 @@ impl<'a> Parser<'a> {
                 return self.var_decl(name, t)
             }
         }
-        self.statement()
+        self.statement(false)
     }
 
-    fn block_declaration(&mut self, vars: &mut Vec<TokenType>) -> Stmt {
+    fn block_declaration(&mut self, vars: &mut Vec<TokenType>, is_loop: bool) -> Stmt {
+        if self.check(&TokenType::Break) {
+            if !is_loop {
+                self.error("cannot have a break statement outside of a loop");
+            }
+            self.advance();
+            self.consume(TokenType::Semicolon, "expected \";\" after break statement");
+            return Stmt::Break;
+        }
         if self.match_tokens(&[TokenType::Bool, TokenType::Int, TokenType::Float, TokenType::String]) {
             let t = self.previous().clone();
             self.consume(TokenType::Identifier, "expected identifier after type declaration");
@@ -73,7 +81,7 @@ impl<'a> Parser<'a> {
                 return self.var_decl(name, t)
             }
         }
-        self.statement()
+        self.statement(is_loop)
     }
 
     fn fn_decl(&mut self, name: Token, return_type: TokenType) -> Stmt {
@@ -94,7 +102,7 @@ impl<'a> Parser<'a> {
         }
         self.consume(TokenType::RightParen, "expected \")\" after function declaration");
         let body: Box<Stmt>;
-        body = Box::new(self.block(Some(return_type)));
+        body = Box::new(self.block(Some(return_type), false));
         Stmt::Fn {
             name: match name.literal {
                 Some(Value::String(s)) => s,
@@ -120,7 +128,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn statement(&mut self) -> Stmt {
+    fn statement(&mut self, is_loop: bool) -> Stmt {
         if self.match_tokens(&[TokenType::Print]) {
             return self.print_stmt();
         }
@@ -128,7 +136,7 @@ impl<'a> Parser<'a> {
             return self.return_stmt();
         }
         if self.match_tokens(&[TokenType::If]) {
-            return self.if_stmt();
+            return self.if_stmt(is_loop);
         }
         if self.match_tokens(&[TokenType::While]) {
             return self.while_stmt();
@@ -165,11 +173,11 @@ impl<'a> Parser<'a> {
         Stmt::Return{returnee: value, return_type: self.return_type}
     }
 
-    fn if_stmt(&mut self) -> Stmt {
+    fn if_stmt(&mut self, is_loop: bool) -> Stmt {
         let condition = self.logical();
-        let then_branch = Box::new(self.block(None));
+        let then_branch = Box::new(self.block(None, is_loop));
         let else_branch = if self.match_tokens(&[TokenType::Else]) {
-            Some(Box::new(self.block(None)))
+            Some(Box::new(self.block(None, is_loop)))
         } else {
             None
         };
@@ -182,14 +190,14 @@ impl<'a> Parser<'a> {
 
     fn while_stmt(&mut self) -> Stmt {
         let condition = self.logical();
-        let block = Box::new(self.block(None));
+        let block = Box::new(self.block(None, true));
         Stmt::While {
             condition,
             block,
         }
     }
 
-    fn block(&mut self, enforce_return_type: Option<TokenType>) -> Stmt {
+    fn block(&mut self, enforce_return_type: Option<TokenType>, is_loop: bool) -> Stmt {
         // println!("{:?}", enforce_return_type);
         self.consume(TokenType::LeftBrace, "block must start with a \"{\"");
         let mut had_return: bool = false;
@@ -199,7 +207,7 @@ impl<'a> Parser<'a> {
         let mut vars1: Vec<TokenType> = Vec::new();
         let mut stmts: Vec<Stmt> = Vec::new();
         while !self.is_at_end() && !self.check(&TokenType::RightBrace) {
-            let stmt = self.block_declaration(&mut vars1);
+            let stmt = self.block_declaration(&mut vars1, is_loop);
             match stmt.clone() {
                 Stmt::If {then_branch, else_branch, ..} => {
                     match *then_branch.clone() {

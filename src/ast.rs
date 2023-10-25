@@ -53,4 +53,5 @@ pub enum Stmt {
         returnee: Expr,
         return_type: TokenType
     },
+    Break,
 }

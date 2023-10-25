@@ -250,7 +250,8 @@ impl Compiler {
             } => {
                 let t = self.compile_expr(function, condition);
                 //check that the condition is a boolean
-                if t != Value::Bool(true) {
+                if let Value::Bool(_) = t {
+                } else {
                     self.error("condition must evaluate to a boolean");
                 }
                 function.instruction(&Instruction::If(BlockType::Empty));
@@ -267,7 +268,12 @@ impl Compiler {
                 t,
             } => {
                 if let Some(value) = value {
-                    match self.compile_expr(function, value) {
+                    let val1 = self.compile_expr(function, value);
+                    let s = val1.as_str();
+                    let len = s.len() as i32;
+                    let index = self.make_string(s);
+                    self.string_vars.insert(name.literal.clone().unwrap().as_str().to_string(), index);
+                    match val1.clone() {
                         Value::Int(_) => {if t != TokenType::Int {self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str());}},
                         Value::Float(_) => {if t != TokenType::Float {self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str());}},
                         Value::Bool(_) => {if t != TokenType::Bool {self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str());}},
@@ -347,6 +353,9 @@ impl Compiler {
                 }
                 function.instruction(&Instruction::Return);
             }
+            Stmt::Break => {
+                function.instruction(&Instruction::Br(0));
+            }
             _ => self.error("unreachable?"),
         }
     }
@@ -358,15 +367,15 @@ impl Compiler {
                 return match val {
                     Value::Int(n) => {
                         function.instruction(&Instruction::I64Const(n));
-                        Value::Int(0)
+                        Value::Int(n)
                     },
                     Value::Float(n) => {
                         function.instruction(&Instruction::F64Const(n));
-                        Value::Float(0.0)
+                        Value::Float(n)
                     },
                     Value::Bool(b) => {
                         function.instruction(&Instruction::I32Const(if b { 1 } else { 0 }));
-                        Value::Bool(true)
+                        Value::Bool(b)
                     },
                     Value::String(s) => {
                         Value::Index(self.make_string(s))
@@ -381,28 +390,36 @@ impl Compiler {
                 let val = self.compile_expr(function, *value);
                 match self.vars.get(&name.literal.clone().unwrap().as_str()).unwrap().1 {
                     TokenType::Int => {
-                        if val != Value::Int(0) {
+                        if let Value::Int(_) = val {
+                        } else {
                             self.error(format!("Cannot assign non-integer value to variable \"{}\" of type Int", name.literal.clone().unwrap().as_str()).as_str());
                         }
                     },
                     TokenType::Float => {
-                        if val != Value::Float(0.0) {
+                        if let Value::Float(_) = val {
+                        } else {
                             self.error(format!("Cannot assign non-float value to variable \"{}\" of type Float", name.literal.clone().unwrap().as_str()).as_str());
                         }
                     },
                     TokenType::Bool => {
-                        if val != Value::Bool(true) {
+                        if let Value::Bool(_) = val {
+                        } else {
                             self.error(format!("Cannot assign non-boolean value to variable \"{}\" of type Bool", name.literal.clone().unwrap().as_str()).as_str());
                         }
                     },
                     TokenType::String => {
-                        if val != Value::String("".to_owned()) {
+                        if let Value::String(_) = val {
+                        } else {
                             self.error(format!("Cannot assign non-string value to variable \"{}\" of type String", name.literal.clone().unwrap().as_str()).as_str());
                         }
                     },
                     _ => self.error("unreachable?"),
                 }
                 function.instruction(&Instruction::LocalSet(self.vars.get(&name.literal.clone().unwrap().as_str()).unwrap().0));
+                let s = val.as_str();
+                let len = s.len() as i32;
+                let index = self.make_string(s);
+                self.string_vars.insert(name.literal.clone().unwrap().as_str().to_string(), index);
                 Value::Int(0)
             }
             Expr::Binary {
@@ -485,7 +502,7 @@ impl Compiler {
             }
             Expr::Variable(t) => {
                 return self.string_vars.get(&t.literal.clone().unwrap().as_str()).unwrap_or_else(|| {
-                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", t.literal.clone().unwrap().as_str()));
+                    self.error(&format!("cannot stringify variable {}", t.literal.clone().unwrap().as_str()));
                     panic!()
                 }).clone();
             }
@@ -518,34 +535,34 @@ impl Compiler {
 
     fn bin(&mut self, function: &mut Function, t1: &Value, t2: &Value, operator: TokenType) -> Value {
         match (t1, t2) {
-            (Value::Int(_), Value::Int(_)) => {
+            (Value::Int(n1), Value::Int(n2)) => {
                 match operator {
-                    TokenType::Plus => {function.instruction(&Instruction::I64Add); Value::Int(0)},
-                    TokenType::Minus => {function.instruction(&Instruction::I64Sub); Value::Int(0)},
-                    TokenType::Star => {function.instruction(&Instruction::I64Mul); Value::Int(0)},
-                    TokenType::Slash => {function.instruction(&Instruction::I64DivU); Value::Int(0)},
-                    TokenType::EqualEqual => {function.instruction(&Instruction::I64Eq); Value::Bool(true)},
-                    TokenType::BangEqual => {function.instruction(&Instruction::I64Ne); Value::Bool(true)},
-                    TokenType::Less => {function.instruction(&Instruction::I64LtU); Value::Bool(true)},
-                    TokenType::LessEqual => {function.instruction(&Instruction::I64LeU); Value::Bool(true)},
-                    TokenType::Greater => {function.instruction(&Instruction::I64GtU); Value::Bool(true)},
-                    TokenType::GreaterEqual => {function.instruction(&Instruction::I64GeU); Value::Bool(true)},
-                    TokenType::Modulo => {function.instruction(&Instruction::I64RemU); Value::Int(0)},
+                    TokenType::Plus => {function.instruction(&Instruction::I64Add); Value::Int(n1+n2)},
+                    TokenType::Minus => {function.instruction(&Instruction::I64Sub); Value::Int(n1-n2)},
+                    TokenType::Star => {function.instruction(&Instruction::I64Mul); Value::Int(n1*n2)},
+                    TokenType::Slash => {function.instruction(&Instruction::I64DivU); Value::Int(n1/n2)},
+                    TokenType::EqualEqual => {function.instruction(&Instruction::I64Eq); Value::Bool(n1 == n2)},
+                    TokenType::BangEqual => {function.instruction(&Instruction::I64Ne); Value::Bool(n1 != n2)},
+                    TokenType::Less => {function.instruction(&Instruction::I64LtU); Value::Bool(n1 < n2)},
+                    TokenType::LessEqual => {function.instruction(&Instruction::I64LeU); Value::Bool(n1 <= n2)},
+                    TokenType::Greater => {function.instruction(&Instruction::I64GtU); Value::Bool(n1 > n2)},
+                    TokenType::GreaterEqual => {function.instruction(&Instruction::I64GeU); Value::Bool(n1 >= n2)},
+                    TokenType::Modulo => {function.instruction(&Instruction::I64RemU); Value::Int(n1%n2)},
                     _ => {self.error("unreachable?"); Value::Bool(true)},
                 }
             }
-            (Value::Float(_), Value::Float(_)) => {
+            (Value::Float(n1), Value::Float(n2)) => {
                 match operator {
-                    TokenType::Plus => {function.instruction(&Instruction::F64Add); Value::Float(0.0)},
-                    TokenType::Minus => {function.instruction(&Instruction::F64Sub); Value::Float(0.0)},
-                    TokenType::Star => {function.instruction(&Instruction::F64Mul); Value::Float(0.0)},
-                    TokenType::Slash => {function.instruction(&Instruction::F64Div); Value::Float(0.0)},
-                    TokenType::EqualEqual => {function.instruction(&Instruction::F64Eq); Value::Bool(true)},
-                    TokenType::BangEqual => {function.instruction(&Instruction::F64Ne); Value::Bool(true)},
-                    TokenType::Less => {function.instruction(&Instruction::F64Lt); Value::Bool(true)},
-                    TokenType::LessEqual => {function.instruction(&Instruction::F64Le); Value::Bool(true)},
-                    TokenType::Greater => {function.instruction(&Instruction::F64Gt); Value::Bool(true)},
-                    TokenType::GreaterEqual => {function.instruction(&Instruction::F64Ge); Value::Bool(true)},
+                    TokenType::Plus => {function.instruction(&Instruction::F64Add); Value::Float(n1+n2)},
+                    TokenType::Minus => {function.instruction(&Instruction::F64Sub); Value::Float(n1-n2)},
+                    TokenType::Star => {function.instruction(&Instruction::F64Mul); Value::Float(n1*n2)},
+                    TokenType::Slash => {function.instruction(&Instruction::F64Div); Value::Float(n1/n2)},
+                    TokenType::EqualEqual => {function.instruction(&Instruction::F64Eq); Value::Bool(n1==n2)},
+                    TokenType::BangEqual => {function.instruction(&Instruction::F64Ne); Value::Bool(n1!=n2)},
+                    TokenType::Less => {function.instruction(&Instruction::F64Lt); Value::Bool(n1<n2)},
+                    TokenType::LessEqual => {function.instruction(&Instruction::F64Le); Value::Bool(n1<=n2)},
+                    TokenType::Greater => {function.instruction(&Instruction::F64Gt); Value::Bool(n1>n2)},
+                    TokenType::GreaterEqual => {function.instruction(&Instruction::F64Ge); Value::Bool(n1>=n2)},
                     TokenType::Modulo => {self.error("cannot use modulo on 2 floats"); Value::Bool(true)},
                     _ => {self.error("undefined operation"); Value::Bool(true)},
                 }
@@ -559,12 +576,12 @@ impl Compiler {
             (Value::Float(_), _) => {
                 {self.error("Cannot execute this operation on different types, use 2 floats"); Value::Bool(true)}
             }
-            (Value::Bool(_), Value::Bool(_)) => {
+            (Value::Bool(n1), Value::Bool(n2)) => {
                 match operator {
-                    TokenType::EqualEqual => {function.instruction(&Instruction::I32Eq); Value::Bool(true)},
-                    TokenType::BangEqual => {function.instruction(&Instruction::I32Ne); Value::Bool(true)},
-                    TokenType::And => {function.instruction(&Instruction::I32And); Value::Bool(true)},
-                    TokenType::Or => {function.instruction(&Instruction::I32Or); Value::Bool(true)},
+                    TokenType::EqualEqual => {function.instruction(&Instruction::I32Eq); Value::Bool(*n1==*n2)},
+                    TokenType::BangEqual => {function.instruction(&Instruction::I32Ne); Value::Bool(*n1!=*n2)},
+                    TokenType::And => {function.instruction(&Instruction::I32And); Value::Bool(*n1 && *n2)},
+                    TokenType::Or => {function.instruction(&Instruction::I32Or); Value::Bool(*n1 || *n2)},
                     _ => {self.error("cannot use operation on 2 booleans"); Value::Bool(true)}
                 }
             }
