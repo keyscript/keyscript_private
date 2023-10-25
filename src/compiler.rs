@@ -535,35 +535,34 @@ impl Compiler {
 
     fn bin(&mut self, function: &mut Function, t1: &Value, t2: &Value, operator: TokenType) -> Value {
         match (t1, t2) {
-            (Value::Int(n1), Value::Int(n2)) => {
+            (Value::Int(_), Value::Int(_)) => {
                 match operator {
-                    TokenType::Plus => {function.instruction(&Instruction::I64Add); Value::Int(n1+n2)},
-                    TokenType::Minus => {function.instruction(&Instruction::I64Sub); Value::Int(n1-n2)},
-                    TokenType::Star => {function.instruction(&Instruction::I64Mul); Value::Int(n1*n2)},
-                    TokenType::Slash => {function.instruction(&Instruction::I64DivU); Value::Int(n1/n2)},
-                    TokenType::EqualEqual => {function.instruction(&Instruction::I64Eq); Value::Bool(n1 == n2)},
-                    TokenType::BangEqual => {function.instruction(&Instruction::I64Ne); Value::Bool(n1 != n2)},
-                    TokenType::Less => {function.instruction(&Instruction::I64LtU); Value::Bool(n1 < n2)},
-                    TokenType::LessEqual => {function.instruction(&Instruction::I64LeU); Value::Bool(n1 <= n2)},
-                    TokenType::Greater => {function.instruction(&Instruction::I64GtU); Value::Bool(n1 > n2)},
-                    TokenType::GreaterEqual => {function.instruction(&Instruction::I64GeU); Value::Bool(n1 >= n2)},
-                    TokenType::Modulo => {function.instruction(&Instruction::I64RemU); Value::Int(n1%n2)},
+                    TokenType::Plus => {function.instruction(&Instruction::I64Add); Value::Int(0)},
+                    TokenType::Minus => {function.instruction(&Instruction::I64Sub); Value::Int(0)},
+                    TokenType::Star => {function.instruction(&Instruction::I64Mul); Value::Int(0)},
+                    TokenType::Slash => {function.instruction(&Instruction::I64DivU); Value::Int(0)},
+                    TokenType::EqualEqual => {function.instruction(&Instruction::I64Eq); Value::Bool(true)},
+                    TokenType::BangEqual => {function.instruction(&Instruction::I64Ne); Value::Bool(true)},
+                    TokenType::Less => {function.instruction(&Instruction::I64LtU); Value::Bool(true)},
+                    TokenType::LessEqual => {function.instruction(&Instruction::I64LeU); Value::Bool(true)},
+                    TokenType::Greater => {function.instruction(&Instruction::I64GtU); Value::Bool(true)},
+                    TokenType::GreaterEqual => {function.instruction(&Instruction::I64GeU); Value::Bool(true)},
+                    TokenType::Modulo => {function.instruction(&Instruction::I64RemU); Value::Int(0)},
                     _ => {self.error("unreachable?"); Value::Bool(true)},
                 }
             }
-            (Value::Float(n1), Value::Float(n2)) => {
+            (Value::Float(_), Value::Float(_)) => {
                 match operator {
-                    TokenType::Plus => {function.instruction(&Instruction::F64Add); Value::Float(n1+n2)},
-                    TokenType::Minus => {function.instruction(&Instruction::F64Sub); Value::Float(n1-n2)},
-                    TokenType::Star => {function.instruction(&Instruction::F64Mul); Value::Float(n1*n2)},
-                    TokenType::Slash => {function.instruction(&Instruction::F64Div); Value::Float(n1/n2)},
-                    TokenType::EqualEqual => {function.instruction(&Instruction::F64Eq); Value::Bool(n1==n2)},
-                    TokenType::BangEqual => {function.instruction(&Instruction::F64Ne); Value::Bool(n1!=n2)},
-                    TokenType::Less => {function.instruction(&Instruction::F64Lt); Value::Bool(n1<n2)},
-                    TokenType::LessEqual => {function.instruction(&Instruction::F64Le); Value::Bool(n1<=n2)},
-                    TokenType::Greater => {function.instruction(&Instruction::F64Gt); Value::Bool(n1>n2)},
-                    TokenType::GreaterEqual => {function.instruction(&Instruction::F64Ge); Value::Bool(n1>=n2)},
-                    TokenType::Modulo => {self.error("cannot use modulo on 2 floats"); Value::Bool(true)},
+                    TokenType::Plus => {function.instruction(&Instruction::F64Add); Value::Float(0.0)},
+                    TokenType::Minus => {function.instruction(&Instruction::F64Sub); Value::Float(0.0)},
+                    TokenType::Star => {function.instruction(&Instruction::F64Mul); Value::Float(0.0)},
+                    TokenType::Slash => {function.instruction(&Instruction::F64Div); Value::Float(0.0)},
+                    TokenType::EqualEqual => {function.instruction(&Instruction::F64Eq); Value::Bool(true)},
+                    TokenType::BangEqual => {function.instruction(&Instruction::F64Ne); Value::Bool(true)},
+                    TokenType::Less => {function.instruction(&Instruction::F64Lt); Value::Bool(true)},
+                    TokenType::LessEqual => {function.instruction(&Instruction::F64Le); Value::Bool(true)},
+                    TokenType::Greater => {function.instruction(&Instruction::F64Gt); Value::Bool(true)},
+                    TokenType::GreaterEqual => {function.instruction(&Instruction::F64Ge); Value::Bool(true)},
                     _ => {self.error("undefined operation"); Value::Bool(true)},
                 }
             }
@@ -576,12 +575,12 @@ impl Compiler {
             (Value::Float(_), _) => {
                 {self.error("Cannot execute this operation on different types, use 2 floats"); Value::Bool(true)}
             }
-            (Value::Bool(n1), Value::Bool(n2)) => {
+            (Value::Bool(_), Value::Bool(_)) => {
                 match operator {
-                    TokenType::EqualEqual => {function.instruction(&Instruction::I32Eq); Value::Bool(*n1==*n2)},
-                    TokenType::BangEqual => {function.instruction(&Instruction::I32Ne); Value::Bool(*n1!=*n2)},
-                    TokenType::And => {function.instruction(&Instruction::I32And); Value::Bool(*n1 && *n2)},
-                    TokenType::Or => {function.instruction(&Instruction::I32Or); Value::Bool(*n1 || *n2)},
+                    TokenType::EqualEqual => {function.instruction(&Instruction::I32Eq); Value::Bool(true)},
+                    TokenType::BangEqual => {function.instruction(&Instruction::I32Ne); Value::Bool(true)},
+                    TokenType::And => {function.instruction(&Instruction::I32And); Value::Bool(true)},
+                    TokenType::Or => {function.instruction(&Instruction::I32Or); Value::Bool(true)},
                     _ => {self.error("cannot use operation on 2 booleans"); Value::Bool(true)}
                 }
             }
