@@ -137,7 +137,6 @@ fn main() {
 //todo list:
 //polish the error messages
 //debug strings when assigning.
-//break keyword
 //auto generate functions
 //release!
 //arrays
