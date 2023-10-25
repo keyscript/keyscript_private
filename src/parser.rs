@@ -181,6 +181,7 @@ impl<'a> Parser<'a> {
     }
 
     fn block(&mut self, enforce_return_type: Option<TokenType>) -> Stmt {
+        // println!("{:?}", enforce_return_type);
         self.consume(TokenType::LeftBrace, "block must start with a \"{\"");
         let mut had_return: bool = false;
         if enforce_return_type.is_some() {
@@ -198,7 +199,7 @@ impl<'a> Parser<'a> {
             if had_return {
                 self.error("void functions cannot return a value");
             }
-        } else {
+        } else if !enforce_return_type.is_none() {
             if !had_return {
                 self.error("non void functions must return a value");
             }

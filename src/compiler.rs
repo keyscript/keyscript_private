@@ -501,6 +501,7 @@ impl Compiler {
                     TokenType::LessEqual => {function.instruction(&Instruction::I64LeU); Value::Bool(true)},
                     TokenType::Greater => {function.instruction(&Instruction::I64GtU); Value::Bool(true)},
                     TokenType::GreaterEqual => {function.instruction(&Instruction::I64GeU); Value::Bool(true)},
+                    TokenType::Modulo => {function.instruction(&Instruction::I64RemU); Value::Int(0)},
                     _ => {self.error("unreachable?"); Value::Bool(true)},
                 }
             }
@@ -516,6 +517,7 @@ impl Compiler {
                     TokenType::LessEqual => {function.instruction(&Instruction::F64Le); Value::Bool(true)},
                     TokenType::Greater => {function.instruction(&Instruction::F64Gt); Value::Bool(true)},
                     TokenType::GreaterEqual => {function.instruction(&Instruction::F64Ge); Value::Bool(true)},
+                    TokenType::Modulo => {self.error("cannot use modulo on 2 floats"); Value::Bool(true)},
                     _ => {self.error("undefined operation"); Value::Bool(true)},
                 }
             }

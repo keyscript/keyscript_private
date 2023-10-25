@@ -34,6 +34,7 @@ impl KeyScriptError {
             Self::ScannerError => (),
             Self::Warning => (),
             _ => std::process::exit(1),
+            // _ => panic!(),
         }
     }
 
