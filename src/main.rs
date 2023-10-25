@@ -3,7 +3,6 @@ mod scanner;
 mod parser;
 mod compiler;
 mod ast;
-extern crate backtrace;
 use std::path::Path;
 use std::{env, fs::read_to_string, fs::metadata};
 use std::io::Write;
