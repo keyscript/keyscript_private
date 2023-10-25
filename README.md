@@ -14,7 +14,7 @@
 - Loops:
 - While loop: `while bool_expression { code }`
 - for loops will be added in a later version in rust style `for i in 0..10 { code }`
-- module system and importing: `use {function} from "./file.kys";`
+- import keyscript functions using javascript. check `cargo run init` for example.
 - I/O: keyscript uses `print()` for output, use js for input.
 - keyscript also allows string concatenation `"hi" + " " + "there"` would be `hi there`.
 - functions: keyscript uses the return type with a fucntion name and (parameters) syntax.
