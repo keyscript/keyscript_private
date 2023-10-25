@@ -200,12 +200,6 @@ impl Compiler {
 
         let wasm_bytes = self.module.clone().finish();
         let mut validator = Parser::new(0);
-        if let Err(e) = validator.parse(&wasm_bytes, false) {
-            println!("Validation error: {:?} please report to the devs!", e);
-            std::process::exit(0);
-        } else {
-            println!("{}", "Validation successful!".green());
-        }
         if !self.path.ends_with(".wasm") {
             self.path = "output.wasm".to_string();
         }
