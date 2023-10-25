@@ -33,7 +33,7 @@ impl KeyScriptError {
         match error_type {
             Self::ScannerError => (),
             Self::Warning => (),
-            _ => std::process::exit(0),
+            _ => std::process::exit(1),
         }
     }
 

@@ -211,7 +211,7 @@ impl<'a> Scanner<'a> {
             "float" => self.make_token(TokenType::Float, None),
             "string" => self.make_token(TokenType::String, None),
             "bool" => self.make_token(TokenType::Bool, None),
-            "pub" => self.make_token(TokenType::Pub, None),
+            "void" => self.make_token(TokenType::Void, None),
             _ => self.make_token(TokenType::Identifier, Some(Value::String(identifier))),
         }
     }
@@ -242,13 +242,23 @@ pub enum Value {
     Float(f64),
     Int(i64),
     Bool(bool),
+    Index(i32),
 }
 
 impl Value {
-    pub fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> String {
         match self {
-            Value::String(string) => string.as_str(),
-            _ => panic!("expected string"),
+            Value::String(string) => string.clone(),
+            Value::Bool(boolean) => {
+                if *boolean {
+                    "true".to_string()
+                } else {
+                    "false".to_string()
+                }
+            }
+            Value::Float(float) => float.to_string(),
+            Value::Int(int) => int.to_string(),
+            _ => panic!("cannot convert value to string"),
         }
     }
 }
@@ -297,11 +307,11 @@ pub enum TokenType {
     Int,
     Float,
     Bool,
+    Void,
     Value,
     If,
     Else,
     While,
-    Pub,
     Print,
     Return,
     Eof,

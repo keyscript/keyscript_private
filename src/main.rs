@@ -3,13 +3,14 @@ mod scanner;
 mod parser;
 mod compiler;
 mod ast;
-
+extern crate backtrace;
 use std::path::Path;
 use std::{env, fs::read_to_string, fs::metadata};
 use std::io::Write;
 use crate::errors::KeyScriptError;
 
 fn main() {
+    // std::env::set_var("RUST_BACKTRACE", "5");
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         KeyScriptError::error(
@@ -19,9 +20,11 @@ fn main() {
             None);
     }
     let file_name;
-    let mut is_wat = true;
+    let mut is_wat = false;
+    if args.len() > 2 && args [2] == "debug" {
+        is_wat = true;
+    }
     if &args[1] == "init" {
-        is_wat = false;
         let loop_code = r#"int fib(int n) {
     if n < 2 {
         return n;
@@ -63,7 +66,7 @@ fn main() {
 <script>
     let imports = {
         wasm: {
-            memory: new WebAssembly.Memory({initial: 256}), // 1 page = 64KB
+            memory: new WebAssembly.Memory({initial: 256}), // 1 page = 64KB, 256 pages = much storage
         },
         console: {
             log: function (offset, length) {
@@ -71,13 +74,13 @@ fn main() {
             }
         }
     };
-    fetch('output.wasm')
+    fetch('index.wasm') // file name!!
         .then(response => response.arrayBuffer())
         .then(bytes => {
             return WebAssembly.instantiate(bytes, imports)
         })
         .then(result => {
-            const returnValue = result.instance.exports.fib(BigInt(40));
+            const returnValue = result.instance.exports.fib(BigInt(40)); // use BigInt for ints, use exports.<function name> for functions.
             if (returnValue) {
                 document.getElementById('output').textContent = `Function returned: ${returnValue}`;
             } else {
@@ -101,7 +104,7 @@ fn main() {
     }
     let path = Path::new(&file_name);
     let main_file_name = path.file_name().unwrap().to_str().unwrap();
-    if args.len() == 2 {
+    if args.len() >= 2 {
         if !file_name.ends_with(".kys") {
             KeyScriptError::error(
                 KeyScriptError::Warning,
@@ -134,13 +137,10 @@ fn main() {
 
 //todo list:
 //polish the error messages
-//add string concatenation
-//add printing to the compiler- strings
 //void functions
 //return types and enforce returns
-//kys command to generate sample code and html
-//try to add keyscript compile to npm run
 //release!
+//try to add keyscript compile to npm run
 //add vectors
 //add hi(a=2)
 //start implementing features

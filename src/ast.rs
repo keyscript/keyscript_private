@@ -49,5 +49,8 @@ pub enum Stmt {
         body: Box<Stmt>,
         return_type: TokenType,
     },
-    Return(Expr),
+    Return{
+        returnee: Expr,
+        return_type: TokenType
+    },
 }

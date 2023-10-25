@@ -6,6 +6,7 @@ pub struct Parser<'a> {
     current: usize,
     filename: &'a str,
     pub vars: Vec<TokenType>,
+    pub return_type: TokenType,
 }
 
 impl<'a> Parser<'a> {
@@ -14,7 +15,8 @@ impl<'a> Parser<'a> {
             tokens,
             current: 0,
             filename,
-            vars: Vec::new()
+            vars: Vec::new(),
+            return_type: TokenType::Void,
         }
     }
 
@@ -33,13 +35,16 @@ impl<'a> Parser<'a> {
     }
 
     fn declaration(&mut self) -> Stmt {
-        if self.match_tokens(&[TokenType::Bool, TokenType::Int, TokenType::Float, TokenType::String]) {
+        if self.match_tokens(&[TokenType::Bool, TokenType::Int, TokenType::Float, TokenType::String, TokenType::Void]) {
             let t = self.previous().clone();
             self.consume(TokenType::Identifier, "expected identifier after type declaration");
             let name = self.previous().clone();
             if self.match_tokens(&[TokenType::LeftParen]) {
                 return self.fn_decl(name, t.tt);
             } else {
+                if self.match_tokens(&[TokenType::Void]) {
+                    self.error("cannot have a variable of type void");
+                }
                 self.vars.push(t.tt);
                 return self.var_decl(name, t)
             }
@@ -79,7 +84,8 @@ impl<'a> Parser<'a> {
             params.push((t, identifier.clone()));
         }
         self.consume(TokenType::RightParen, "expected \")\" after function declaration");
-        let body = Box::new(self.block());
+        let body: Box<Stmt>;
+        body = Box::new(self.block(Some(return_type)));
         Stmt::Fn {
             name: match name.literal {
                 Some(Value::String(s)) => s,
@@ -122,9 +128,23 @@ impl<'a> Parser<'a> {
     }
 
     fn print_stmt(&mut self) -> Stmt {
-        let expr = self.logical();
+        let expr = self.logical(); // only can have binary(+) with primary
         self.consume(TokenType::Semicolon, "expected \";\" after print statement");
         Stmt::Print(expr)
+    }
+
+    fn parse_print(&mut self) -> Expr {
+        let mut left: Expr = self.primary();
+        while self.match_tokens(&[TokenType::Plus]) {
+            let operator = self.previous().clone();
+            let right: Expr = self.parse_print();
+            return Expr::Binary {
+                left: Box::new(left),
+                operator,
+                right: Box::new(right),
+            };
+        }
+        self.primary()
     }
 
     fn return_stmt(&mut self) -> Stmt {
@@ -133,14 +153,14 @@ impl<'a> Parser<'a> {
         }
         let value = self.logical();
         self.consume(TokenType::Semicolon, "expected \";\" after return statement");
-        Stmt::Return(value)
+        Stmt::Return{returnee: value, return_type: self.return_type}
     }
 
     fn if_stmt(&mut self) -> Stmt {
         let condition = self.logical();
-        let then_branch = Box::new(self.block());
+        let then_branch = Box::new(self.block(None));
         let else_branch = if self.match_tokens(&[TokenType::Else]) {
-            Some(Box::new(self.block()))
+            Some(Box::new(self.block(None)))
         } else {
             None
         };
@@ -153,19 +173,39 @@ impl<'a> Parser<'a> {
 
     fn while_stmt(&mut self) -> Stmt {
         let condition = self.logical();
-        let block = Box::new(self.block());
+        let block = Box::new(self.block(None));
         Stmt::While {
             condition,
             block,
         }
     }
 
-    fn block(&mut self) -> Stmt {
+    fn block(&mut self, enforce_return_type: Option<TokenType>) -> Stmt {
+        println!("{:?}", enforce_return_type);
         self.consume(TokenType::LeftBrace, "block must start with a \"{\"");
+        let mut had_return: bool = false;
+        if enforce_return_type.is_some() {
+            self.return_type = enforce_return_type.unwrap();
+        }
         let mut vars: Vec<TokenType> = Vec::new();
         let mut stmts: Vec<Stmt> = Vec::new();
         while !self.is_at_end() && !self.check(&TokenType::RightBrace) {
             stmts.push(self.block_declaration(&mut vars));
+            if let Stmt::Return {..} = stmts[stmts.len() - 1] {
+                had_return = true;
+            }
+        }
+        if let Some(TokenType::Void) = enforce_return_type {
+            if had_return {
+                self.error("void functions cannot return a value");
+            }
+        } else {
+            if !had_return {
+                self.error("non void functions must return a value");
+            }
+        }
+        if enforce_return_type.is_some() {
+            self.return_type = TokenType::Void;
         }
         self.consume(TokenType::RightBrace, "block must end with a \"}\"");
         Stmt::Block{stmts, vars}
