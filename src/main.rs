@@ -9,7 +9,7 @@ use std::io::Write;
 use crate::errors::KeyScriptError;
 
 fn main() {
-    std::env::set_var("RUST_BACKTRACE", "5");
+    // std::env::set_var("RUST_BACKTRACE", "5");
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         KeyScriptError::error(
