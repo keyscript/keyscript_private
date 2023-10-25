@@ -40,6 +40,9 @@ impl<'a> Parser<'a> {
             self.consume(TokenType::Identifier, "expected identifier after type declaration");
             let name = self.previous().clone();
             if self.match_tokens(&[TokenType::LeftParen]) {
+                if t.tt == TokenType::String {
+                    self.error("functions cannot return a string, use the main script or a void function");
+                }
                 return self.fn_decl(name, t.tt);
             } else {
                 if self.match_tokens(&[TokenType::Void]) {

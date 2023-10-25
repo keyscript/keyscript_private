@@ -415,8 +415,20 @@ impl Compiler {
                 self.bin(function, &t1, &t2, operator.tt)
             }
             Expr::Variable(t) => {
-                function.instruction(&Instruction::LocalGet(self.vars.get(&t.literal.clone().unwrap().as_str()).unwrap().0));
-                match self.vars.get(&t.literal.clone().unwrap().as_str()).unwrap().1 {
+                function.instruction(&Instruction::LocalGet(self.vars.get(&t.literal.clone().unwrap_or_else(|| {
+                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", t.literal.clone().unwrap().as_str()));
+                    panic!()
+                }).as_str()).unwrap_or_else(|| {
+                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", t.literal.clone().unwrap().as_str()));
+                    panic!()
+                }).0));
+                match self.vars.get(&t.literal.clone().unwrap_or_else(|| {
+                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", t.literal.clone().unwrap().as_str()));
+                    panic!()
+                }).as_str()).unwrap_or_else(|| {
+                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", t.literal.clone().unwrap().as_str()));
+                    panic!()
+                }).1 {
                     TokenType::Int => Value::Int(0),
                     TokenType::Float => Value::Float(0.0),
                     TokenType::Bool => Value::Bool(true),

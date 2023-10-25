@@ -136,10 +136,9 @@ fn main() {
 
 //todo list:
 //polish the error messages
-//void functions
-//return types and enforce returns
+//debug
+//break keyword
 //release!
+//arrays
 //try to add keyscript compile to npm run
-//add vectors
-//add hi(a=2)
 //start implementing features

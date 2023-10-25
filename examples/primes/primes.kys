@@ -1,0 +1,19 @@
+int findPrimes(int limit) {
+    int count = 0;
+    int i = 2;
+    while i <= limit {
+        int j = 2;
+        bool prime = true;
+        while j <= i / 2 && prime {
+            if i % j == 0 {
+                prime = false;
+            }
+            j += 1;
+        }
+        if prime {
+            count += 1;
+        }
+        i += 1;
+    }
+    return count;
+}
