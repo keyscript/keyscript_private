@@ -10,4 +10,3 @@ colored = { version = "2.0.4", features = [] }
 wasm-encoder = "0.35.0"
 wasmprinter = "0.2.70"
 wasmparser = "0.115.0"
-backtrace = "0.3"
