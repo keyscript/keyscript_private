@@ -13,13 +13,13 @@ to get started and verify functionality (check that the language is working):
 - generate working starter files ["index.html", "index.kys", "index.wasm"]  
 `cargo run init`  
 
-- optional: generate a readable webassembly (.wat) file  
+- optional: generate a readable webassembly (.wat) file using the `debug` after your command
 `cargo run ./index.kys debug`  
 
-- host the index.html file *(webpage should read "Function returned: 102334155")*  
+- host the index.html file *(webpage should read `Function returned: 102334155` aka fib(40))*  
     - option a: using an extension such as 'Live Server' in VSCode  
         1. right-click index.html file in explorer pane  
-        2. 'Open with Live Server [Alt+L Alt+O]'  
+        2. 'Open with Live Server [Alt+L Alt+O]'
 
 <br>
 
@@ -39,6 +39,7 @@ to write new code using keyscript (after the steps listed above are completed):
 `const returnValue = result.instance.exports.fib(BigInt(40));`  
 
 - change "fib" to "main" and remove "BigInt(40)" to make the line as follows  
-`const returnValue = result.instance.exports.main();`  
+`const returnValue = result.instance.exports.main();`
+- or to any function you created in your keyscript file. `result.instance.exports.func(params);`
 
-
+- also make sure to check out `primes.kys` for a more complex example of keyscript syntax.
