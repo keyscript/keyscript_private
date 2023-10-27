@@ -30,6 +30,7 @@ pub struct Compiler {
     string_vars: HashMap<String, i32>, //name, offset
     kys_funcs: Vec<Stmt>,
     js: bool,
+    filename: String,
 }
 
 impl Compiler {
@@ -47,6 +48,7 @@ impl Compiler {
             string_vars: HashMap::new(),
             kys_funcs: Vec::new(),
             js,
+            filename: filename.to_string(),
         }
     }
 
@@ -70,7 +72,7 @@ impl Compiler {
                     self.funcs.insert(name.clone(), (counter, return_type.clone()));
                     counter += 1;
                 }
-                _ => self.error("unreachable?"),
+                _ => self.error("failed to compile the functions", None),
             }
         }
 
@@ -134,14 +136,6 @@ impl Compiler {
         }
         self.module.section(&functions);
 
-        // let mut memory = MemorySection::new();
-        // memory.memory(MemoryType {
-        //     minimum: 1,
-        //     maximum: None,
-        //     memory64: false,
-        //     shared: false,
-        // });
-        // self.module.section(&memory);
         let mut func_names: Vec<String> = vec!["main".to_string()];
         let mut exports = ExportSection::new();
         exports.export("main", ExportKind::Func, 1);
@@ -166,7 +160,7 @@ impl Compiler {
                 TokenType::Float => locals.push((1,ValType::F64)),
                 TokenType::Bool => locals.push((1,ValType::I32)),
                 TokenType::String => locals.push((1,ValType::I32)),
-                _ => self.error("unreachable?"),
+                _ => self.error("undefined param type", None),
             }
         }
         let mut f = Function::new(locals);
@@ -176,12 +170,7 @@ impl Compiler {
         f.instruction(&Instruction::End);
         codes.function(&f);
         for i in self.kys_funcs.clone() {
-            if let Stmt::Fn {
-                name: _,
-                params,
-                body,
-                return_type: _,
-            } = i {
+            if let Stmt::Fn {body, params, line, ..} = i {
                 let mut locals = vec![];
                 match *body.clone() {
                     Stmt::Block {
@@ -194,11 +183,11 @@ impl Compiler {
                                 TokenType::Float => locals.push((1, ValType::F64)),
                                 TokenType::Bool => locals.push((1, ValType::I32)),
                                 TokenType::String => locals.push((1, ValType::I32)),
-                                _ => self.error("unreachable?"),
+                                _ => self.error("undefined param type in function", Some(line)),
                             }
                         }
                     }
-                    _ => self.error("unreachable?"),
+                    _ => self.error("function must contain a block", Some(line)),
                 }
                 let mut f = Function::new(locals);
                 for param in params {
@@ -296,9 +285,12 @@ impl Compiler {
 
     fn compile_stmt(&mut self, function: &mut Function, stmt: Stmt) {
         match stmt {
-            Stmt::Print(expr) => {
-                let t = self.compile_str(function, expr); // allow ints + strings, precomputed in rust, add to string hasmap!!
-                self.print_wasm(function, t);
+            Stmt::Print{
+                expr,
+                line,
+            } => {
+                let t = self.compile_str(function, expr, line); // allow ints + strings, precomputed in rust, add to string hasmap!!
+                self.print_wasm(function, t, line);
             }
             Stmt::Block{
                 stmts,
@@ -315,12 +307,13 @@ impl Compiler {
                 condition,
                 then_branch,
                 else_branch,
+                line,
             } => {
                 let t = self.compile_expr(function, condition);
                 //check that the condition is a boolean
                 if let Value::Bool(_) = t {
                 } else {
-                    self.error("condition must evaluate to a boolean");
+                    self.error("an if condition must evaluate to a boolean", Some(line));
                 }
                 function.instruction(&Instruction::If(BlockType::Empty));
                 self.compile_stmt(function, *then_branch);
@@ -334,6 +327,7 @@ impl Compiler {
                 value,
                 name,
                 t,
+                line,
             } => {
                 if let Some(value) = value {
                     let val1 = self.compile_expr(function, value);
@@ -342,13 +336,13 @@ impl Compiler {
                     let index = self.make_string(s);
                     self.string_vars.insert(name.literal.clone().unwrap().as_str().to_string(), index);
                     match val1.clone() {
-                        Value::Int(_) => {if t != TokenType::Int {self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str());}},
-                        Value::Float(_) => {if t != TokenType::Float {self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str());}},
-                        Value::Bool(_) => {if t != TokenType::Bool {self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str());}},
-                        Value::String(_) => {if t != TokenType::String {self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str());}},
+                        Value::Int(_) => {if t != TokenType::Int {self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str(), Some(line));}},
+                        Value::Float(_) => {if t != TokenType::Float {self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str(), Some(line));}},
+                        Value::Bool(_) => {if t != TokenType::Bool {self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str(), Some(line));}},
+                        Value::String(_) => {if t != TokenType::String {self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str(), Some(line));}},
                         Value::Index(i) => {
                             if t != TokenType::String {
-                                self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str());
+                                self.error(format!("type mismatch, cannot assign to {:?} \"{}\"", t, name.literal.clone().unwrap().as_str()).as_str(), Some(line));
                             } else {
                                 function.instruction(&Instruction::I32Const(i));
                                 self.string_vars.insert(name.literal.clone().unwrap().as_str().to_string(), i);
@@ -361,11 +355,11 @@ impl Compiler {
                         TokenType::Float => {function.instruction(&Instruction::F64Const(0.0));},
                         TokenType::Bool => {function.instruction(&Instruction::I32Const(0));},
                         TokenType::String => {function.instruction(&Instruction::I32Const(0));},
-                        _ => self.error("unreachable?"),
+                        _ => self.error("default type cant be a string reference", Some(line)),
                     }
                 }
                 if self.vars.contains_key(&name.literal.clone().unwrap().as_str()) {
-                    self.error(format!("variable \"{}\" already declared", name.literal.clone().unwrap().as_str()).as_str());
+                    self.error(format!("variable \"{}\" already declared", name.literal.clone().unwrap().as_str()).as_str(), Some(line));
                 }
                 self.vars.insert(name.literal.clone().unwrap().as_str().to_string(), (self.vars_count, t));
                 self.vars_count += 1;
@@ -374,11 +368,12 @@ impl Compiler {
             Stmt::While {
                 condition,
                 block,
+                line,
             } => {
                 let t = self.compile_expr(function, condition.clone());
                 //check that the condition is a boolean
                 if t != Value::Bool(true) {
-                    self.error("condition must evaluate to a boolean");
+                    self.error("while loop's condition must evaluate to a boolean", Some(line));
                 }
                 function.instruction(&Instruction::If(BlockType::Empty));
                 function.instruction(&Instruction::Loop(BlockType::Empty));
@@ -391,31 +386,32 @@ impl Compiler {
             Stmt::Return{
                 returnee,
                 return_type,
+                line,
             } => {
                 match self.compile_expr(function, returnee) {
                     Value::String(_) => {
                         if return_type != TokenType::String {
-                            self.error("type mismatch, cannot return string");
+                            self.error("return type mismatch, cannot return string", Some(line));
                         }
                     }
                     Value::Float(_) => {
                         if return_type != TokenType::Float {
-                            self.error("type mismatch, cannot return float");
+                            self.error("return type mismatch, cannot return float", Some(line));
                         }
                     }
                     Value::Int(_) => {
                         if return_type != TokenType::Int {
-                            self.error("type mismatch, cannot return int");
+                            self.error("return type mismatch, cannot return int", Some(line));
                         }
                     }
                     Value::Bool(_) => {
                         if return_type != TokenType::Bool {
-                            self.error("type mismatch, cannot return bool");
+                            self.error("return type mismatch, cannot return bool", Some(line));
                         }
                     }
                     Value::Index(_) => {
                         if return_type != TokenType::String {
-                            self.error("type mismatch, cannot return string");
+                            self.error("return type mismatch, cannot return string", Some(line));
                         }
                     }
                 }
@@ -424,14 +420,14 @@ impl Compiler {
             Stmt::Break(n) => {
                 function.instruction(&Instruction::Br(n as u32 + 1));
             }
-            _ => self.error("unreachable?"),
+            _ => self.error("functions are compiled separately", None),
         }
     }
 
     fn compile_expr(&mut self, function: &mut Function, expr: Expr) -> Value {
         match expr {
             Expr::Grouping(expr) => self.compile_expr(function, *expr),
-            Expr::Literal(val) => {
+            Expr::Literal{val, line} => {
                 return match val {
                     Value::Int(n) => {
                         function.instruction(&Instruction::I32Const(n));
@@ -448,40 +444,41 @@ impl Compiler {
                     Value::String(s) => {
                         Value::Index(self.make_string(s))
                     },
-                    _ => {self.error("unreachable?"); Value::Int(0)}
+                    _ => {self.error("undefined value (a string refrence isnt a value)", Some(line)); Value::Int(0)}
                 }
             },
             Expr::Assign {
                 name,
                 value,
+                line,
             } => {
                 let val = self.compile_expr(function, *value);
                 match self.vars.get(&name.literal.clone().unwrap().as_str()).unwrap().1 {
                     TokenType::Int => {
                         if let Value::Int(_) = val {
                         } else {
-                            self.error(format!("Cannot assign non-integer value to variable \"{}\" of type Int", name.literal.clone().unwrap().as_str()).as_str());
+                            self.error(format!("Cannot assign non-integer value to variable \"{}\" of type Int", name.literal.clone().unwrap().as_str()).as_str(), Some(line));
                         }
                     },
                     TokenType::Float => {
                         if let Value::Float(_) = val {
                         } else {
-                            self.error(format!("Cannot assign non-float value to variable \"{}\" of type Float", name.literal.clone().unwrap().as_str()).as_str());
+                            self.error(format!("Cannot assign non-float value to variable \"{}\" of type Float", name.literal.clone().unwrap().as_str()).as_str(), Some(line));
                         }
                     },
                     TokenType::Bool => {
                         if let Value::Bool(_) = val {
                         } else {
-                            self.error(format!("Cannot assign non-boolean value to variable \"{}\" of type Bool", name.literal.clone().unwrap().as_str()).as_str());
+                            self.error(format!("Cannot assign non-boolean value to variable \"{}\" of type Bool", name.literal.clone().unwrap().as_str()).as_str(), Some(line));
                         }
                     },
                     TokenType::String => {
                         if let Value::String(_) = val {
                         } else {
-                            self.error(format!("Cannot assign non-string value to variable \"{}\" of type String", name.literal.clone().unwrap().as_str()).as_str());
+                            self.error(format!("Cannot assign non-string value to variable \"{}\" of type String", name.literal.clone().unwrap().as_str()).as_str(), Some(line));
                         }
                     },
-                    _ => self.error("unreachable?"),
+                    _ => self.error("cannot assign a string reference", Some(line)),
                 }
                 function.instruction(&Instruction::LocalSet(self.vars.get(&name.literal.clone().unwrap().as_str()).unwrap().0));
                 let s = val.as_str();
@@ -494,114 +491,122 @@ impl Compiler {
                 left,
                 operator,
                 right,
+                line,
             } => {
                 let t1 = self.compile_expr(function, *left);
                 let t2 = self.compile_expr(function, *right);
-                self.bin(function, &t1, &t2, operator.tt)
+                self.bin(function, &t1, &t2, operator.tt, line)
             }
-            Expr::Variable(t) => {
-                function.instruction(&Instruction::LocalGet(self.vars.get(&t.literal.clone().unwrap_or_else(|| {
-                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", t.literal.clone().unwrap().as_str()));
+            Expr::Variable{name, line} => {
+                function.instruction(&Instruction::LocalGet(self.vars.get(&name.literal.clone().unwrap_or_else(|| {
+                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", name.literal.clone().unwrap().as_str()), Some(line));
                     panic!()
                 }).as_str()).unwrap_or_else(|| {
-                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", t.literal.clone().unwrap().as_str()));
+                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", name.literal.clone().unwrap().as_str()), Some(line));
                     panic!()
                 }).0));
-                match self.vars.get(&t.literal.clone().unwrap_or_else(|| {
-                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", t.literal.clone().unwrap().as_str()));
+                match self.vars.get(&name.literal.clone().unwrap_or_else(|| {
+                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", name.literal.clone().unwrap().as_str()), Some(line));
                     panic!()
                 }).as_str()).unwrap_or_else(|| {
-                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", t.literal.clone().unwrap().as_str()));
+                    self.error(&format!("cannot get variable {}, perhaps it contains a function call?", name.literal.clone().unwrap().as_str()), Some(line));
                     panic!()
                 }).1 {
                     TokenType::Int => Value::Int(0),
                     TokenType::Float => Value::Float(0.0),
                     TokenType::Bool => Value::Bool(true),
                     TokenType::String => Value::String("".to_owned()),
-                    _ => {self.error("unreachable?"); Value::Int(0)}
+                    _ => {self.error("a variable cannot be a string reference", Some(line)); Value::Int(0)}
                 }
             }
             Expr::Unary {
                 operator,
-                expression
+                expression,
+                line,
             } => {
                 let t1 = self.compile_expr(function, *expression);
-                self.unary(function, &t1, operator.tt);
+                self.unary(function, &t1, operator.tt, line);
                 t1
             }
             Expr::Call {
                 callee,
-                arguments
+                arguments,
+                line,
             } => {
                 for arg in arguments {
                     self.compile_expr(function, arg);
                 }
                 match *callee {
-                    Expr::Variable(t) => {
-                        function.instruction(&Instruction::Call(self.funcs.get(&t.literal.clone().unwrap().as_str()).unwrap().0)); //todo use name to number
-                        match self.funcs.get(&t.literal.clone().unwrap().as_str()).unwrap().1 {
+                    Expr::Variable{name, ..} => {
+                        function.instruction(&Instruction::Call(self.funcs.get(&name.literal.clone().unwrap().as_str()).unwrap().0));
+                        match self.funcs.get(&name.literal.clone().unwrap().as_str()).unwrap().1 {
                             TokenType::Int => Value::Int(0),
                             TokenType::Float => Value::Float(0.0),
                             TokenType::Bool => Value::Bool(true),
                             TokenType::String => Value::String("".to_owned()),
-                            _ => {self.error("unreachable?"); Value::Int(0)}
+                            _ => {self.error("a variable cannot be a string reference", Some(line)); Value::Int(0)}
                         }
                     }
-                    _ => {self.error("unreachable?"); Value::Int(0)},
+                    _ => {self.error("a variable cannot be a string reference", Some(line)); Value::Int(0)},
                 }
             }
         }
     }
 
-    fn compile_str(&mut self, function: &mut Function, expr: Expr) -> i32 {
+    fn compile_str(&mut self, function: &mut Function, expr: Expr, line: usize) -> i32 {
         match expr {
-            Expr::Grouping(expr) => {self.compile_str(function, *expr)},
+            Expr::Grouping(expr) => {self.compile_str(function, *expr, line)},
             Expr::Binary {
                 left,
                 right,
+                line,
                 ..
             } => {
-                let t1 = self.compile_str(function, *left);
-                let t2 = self.compile_str(function, *right);
-                self.add_strings(function, t1, t2)
+                let t1 = self.compile_str(function, *left, line);
+                let t2 = self.compile_str(function, *right, line);
+                self.add_strings(function, t1, t2, line)
             }
-            Expr::Literal(val) => {
+            Expr::Literal{
+                val,
+                ..
+            } => {
                 self.make_string(val.as_str())
             }
-            Expr::Variable(t) => {
-                return self.string_vars.get(&t.literal.clone().unwrap().as_str()).unwrap_or_else(|| {
-                    self.error(&format!("cannot stringify variable {}", t.literal.clone().unwrap().as_str()));
+            Expr::Variable{
+                name,
+                line,
+            } => {
+                return self.string_vars.get(&name.literal.clone().unwrap().as_str()).unwrap_or_else(|| {
+                    self.error(&format!("cannot stringify variable {}", name.literal.clone().unwrap().as_str()), Some(line));
                     panic!()
                 }).clone();
             }
             Expr::Call {
                 callee,
                 arguments,
+                line,
             } => {
                 for arg in arguments {
                     self.compile_expr(function, arg);
                 }
                 match *callee {
-                    Expr::Variable(t) => {
+                    Expr::Variable {
+                        name,
+                        ..
+                    } => {
                         // let func_num = self.funcs.get(&t.literal.clone().unwrap().as_str()).unwrap().0;
                         // function.instruction(&Instruction::Call(self.funcs.get(&t.literal.clone().unwrap().as_str()).unwrap().0));
                         // self.precompute_string(self.kys_funcs[func_num as usize - 2].clone())
-                        self.error("we are sorry, keyscript does not support printing function calls yet. (blame wasm's shitty strings). please print the return value inside the function before returning it."); 0
+                        self.error("we are sorry, keyscript does not support printing function calls yet. (blame wasm's shitty strings). please print the return value inside the function before returning it.", Some(line)); 0
                     }
-                    _ => {self.error("unreachable?"); 0},
+                    _ => {self.error("the callee must be a variable", Some(line)); 0},
                 }
             }
-            _ => {self.error(format!("idk what else: {:?}", expr).as_str()); 0}
+            _ => {self.error("this expression cant be used in a print statement", Some(line)); 0}
         }
     }
 
-    // fn precompute_string(&mut self, function: Stmt) -> i32 {
-    //     //todo: HELP :sob:
-    //     //use self.
-    //     0
-    // }
-
-    fn bin(&mut self, function: &mut Function, t1: &Value, t2: &Value, operator: TokenType) -> Value {
+    fn bin(&mut self, function: &mut Function, t1: &Value, t2: &Value, operator: TokenType, line: usize) -> Value {
         match (t1, t2) {
             (Value::Int(_), Value::Int(_)) => {
                 match operator {
@@ -616,7 +621,7 @@ impl Compiler {
                     TokenType::Greater => {function.instruction(&Instruction::I32GtU); Value::Bool(true)},
                     TokenType::GreaterEqual => {function.instruction(&Instruction::I32GeU); Value::Bool(true)},
                     TokenType::Modulo => {function.instruction(&Instruction::I32RemU); Value::Int(0)},
-                    _ => {self.error("unreachable?"); Value::Bool(true)},
+                    _ => {self.error("undefined operation between 2 integers", Some(line)); Value::Bool(true)},
                 }
             }
             (Value::Float(_), Value::Float(_)) => {
@@ -631,17 +636,17 @@ impl Compiler {
                     TokenType::LessEqual => {function.instruction(&Instruction::F64Le); Value::Bool(true)},
                     TokenType::Greater => {function.instruction(&Instruction::F64Gt); Value::Bool(true)},
                     TokenType::GreaterEqual => {function.instruction(&Instruction::F64Ge); Value::Bool(true)},
-                    _ => {self.error("undefined operation"); Value::Bool(true)},
+                    _ => {self.error("undefined operation between 2 floats", Some(line)); Value::Bool(true)},
                 }
             }
             (Value::Index(s), Value::Index(s1)) => {
-                return Value::Index(self.add_strings(function, *s, *s1));
+                return Value::Index(self.add_strings(function, *s, *s1, line));
             }
             (Value::Int(_), _) => {
-                {self.error("Cannot execute this operation on different types, use 2 ints"); Value::Bool(true)}
+                {self.error("Cannot execute this operation on different types, use 2 ints", Some(line)); Value::Bool(true)}
             }
             (Value::Float(_), _) => {
-                {self.error("Cannot execute this operation on different types, use 2 floats"); Value::Bool(true)}
+                {self.error("Cannot execute this operation on different types, use 2 floats", Some(line)); Value::Bool(true)}
             }
             (Value::Bool(_), Value::Bool(_)) => {
                 match operator {
@@ -649,17 +654,17 @@ impl Compiler {
                     TokenType::BangEqual => {function.instruction(&Instruction::I32Ne); Value::Bool(true)},
                     TokenType::And => {function.instruction(&Instruction::I32And); Value::Bool(true)},
                     TokenType::Or => {function.instruction(&Instruction::I32Or); Value::Bool(true)},
-                    _ => {self.error("cannot use operation on 2 booleans"); Value::Bool(true)}
+                    _ => {self.error("undefined operation between 2 booleans", Some(line)); Value::Bool(true)}
                 }
             }
             (Value::Bool(_), _) => {
-                {self.error("Cannot execute this operation on different types, use 2 booleans"); Value::Bool(true)}
+                {self.error("Cannot execute this operation on different types, use 2 booleans", Some(line)); Value::Bool(true)}
             }
-            _ => {self.error("undefined operation"); Value::Bool(true)}
+            _ => {self.error("undefined operation", Some(line)); Value::Bool(true)}
         }
     }
 
-    fn unary(&self, function: &mut Function, t1: &Value, operator: TokenType) {
+    fn unary(&self, function: &mut Function, t1: &Value, operator: TokenType, line: usize) {
         match t1 {
             Value::Int(_) => {
                 match operator {
@@ -667,33 +672,33 @@ impl Compiler {
                         function.instruction(&Instruction::I32Const(-1));
                         function.instruction(&Instruction::I32Mul);
                     },
-                    _ => self.error("undefined unary operation for type int"),
+                    _ => self.error("undefined unary operation for type int", Some(line)),
                 };
             }
             Value::Float(_) => {
                 match operator {
                     TokenType::Minus => {function.instruction(&Instruction::F64Neg);},
-                    _ => self.error("undefined unary operation for type float"),
+                    _ => self.error("undefined unary operation for type float", Some(line)),
                 };
             }
             Value::Bool(_) => {
                 match operator {
                     TokenType::Bang => {function.instruction(&Instruction::I32Eqz);},
-                    _ => self.error("undefined unary operation for type boolean"),
+                    _ => self.error("undefined unary operation for type boolean", Some(line)),
                 };
             }
-            _ => self.error("Cannot negate this type")
+            _ => self.error("Cannot negate this type", Some(line))
         }
     }
 
-    fn add_strings(&mut self, function: &mut Function, t1: i32, t2: i32) -> i32 {
+    fn add_strings(&mut self, function: &mut Function, t1: i32, t2: i32, line: usize) -> i32 {
         //takes 2 indexes to strings and return an index to the new string
         self.offsets.get(&t1).unwrap_or_else(|| {
-            self.error("undefined string");
+            self.error("undefined string", Some(line));
             panic!()
         });
         self.offsets.get(&t2).unwrap_or_else(|| {
-            self.error("undefined string");
+            self.error("undefined string", Some(line));
             panic!()
         });
         let mut s = String::new();
@@ -715,9 +720,9 @@ impl Compiler {
         offset as i32
     }
 
-    fn print_wasm(&mut self, f: &mut Function, offset: i32) {
+    fn print_wasm(&mut self, f: &mut Function, offset: i32, line: usize) {
         let length = self.offsets.get(&offset).unwrap_or_else(|| {
-            self.error("undefined string");
+            self.error("undefined string", Some(line));
             panic!()
         });
         f.instruction(&Instruction::I32Const(offset));
@@ -725,16 +730,11 @@ impl Compiler {
         f.instruction(&Instruction::Call(0));
     }
 
-
-    fn error(&self, msg: &str) {
+    fn error(&self, msg: &str, line: Option<usize>) {
         KeyScriptError::error(
             KeyScriptError::CompilerError,
             Some(msg),
-            None,
-            None); //todo: add line and filename
+            line,
+            Some(self.filename.as_str())); //todo: add line and filename
     }
-
 }
-
-
-

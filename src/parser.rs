@@ -25,8 +25,8 @@ impl<'a> Parser<'a> {
         while !self.is_at_end() {
             let decl = self.declaration();
             match decl {
-                Stmt::Fn { name, params, body, return_type } => {
-                    statements.insert(0, Stmt::Fn { name, params, body, return_type });
+                Stmt::Fn { name, params, body, return_type, line } => {
+                    statements.insert(0, Stmt::Fn { name, params, body, return_type, line });
                 }
                 _ => statements.push(decl),
             }
@@ -111,6 +111,7 @@ impl<'a> Parser<'a> {
             params,
             body,
             return_type,
+            line: name.line,
         }
     }
 
@@ -121,10 +122,12 @@ impl<'a> Parser<'a> {
             None
         };
         self.consume(TokenType::Semicolon, "expected \";\" after variable declaration");
+        let line = name.line;
         Stmt::Var {
             name,
             value,
             t: t.tt,
+            line,
         }
     }
 
@@ -150,7 +153,10 @@ impl<'a> Parser<'a> {
     fn print_stmt(&mut self) -> Stmt {
         let expr = self.logical(); // only can have binary(+) with primary
         self.consume(TokenType::Semicolon, "expected \";\" after print statement");
-        Stmt::Print(expr)
+        Stmt::Print {
+            expr,
+            line: self.previous().line,
+        }
     }
 
     fn parse_print(&mut self) -> Expr {
@@ -158,10 +164,12 @@ impl<'a> Parser<'a> {
         while self.match_tokens(&[TokenType::Plus]) {
             let operator = self.previous().clone();
             let right: Expr = self.parse_print();
+            let line = operator.line;
             return Expr::Binary {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
+                line,
             };
         }
         self.primary()
@@ -173,7 +181,7 @@ impl<'a> Parser<'a> {
         }
         let value = self.logical();
         self.consume(TokenType::Semicolon, "expected \";\" after return statement");
-        Stmt::Return{returnee: value, return_type: self.return_type}
+        Stmt::Return{returnee: value, return_type: self.return_type, line: self.previous().line}
     }
 
     fn if_stmt(&mut self, is_loop: i32) -> Stmt {
@@ -188,6 +196,7 @@ impl<'a> Parser<'a> {
             condition,
             then_branch,
             else_branch,
+            line: self.previous().line,
         }
     }
 
@@ -197,6 +206,7 @@ impl<'a> Parser<'a> {
         Stmt::While {
             condition,
             block,
+            line: self.previous().line,
         }
     }
 
@@ -271,7 +281,7 @@ impl<'a> Parser<'a> {
 
     fn expr_stmt(&mut self) -> Stmt {
         let expr = self.assignment();
-        if let Expr::Variable(_) = expr {
+        if let Expr::Variable{..} = expr {
             self.error("cannot access a variable on its own, use it in an expression");
         }
         let stmt = Stmt::Expression(expr);
@@ -283,19 +293,20 @@ impl<'a> Parser<'a> {
         let identifier = self.logical();
         if self.match_tokens(&[TokenType::Equal, TokenType::PlusEqual, TokenType::MinusEqual, TokenType::StarEqual, TokenType::SlashEqual]) {
             match identifier {
-                Expr::Variable(name) => {
+                Expr::Variable{name, line} => {
                     match self.previous().tt {
                         TokenType::Equal => {
                             return Expr::Assign {
                                 name,
                                 value: Box::new(self.logical()),
+                                line,
                             }
                         }
                         TokenType::PlusEqual | TokenType::MinusEqual | TokenType::StarEqual | TokenType::SlashEqual => {
                             return Expr::Assign {
                                 name: name.clone(),
                                 value: Box::new(Expr::Binary {
-                                    left: Box::new(Expr::Variable(name)),
+                                    left: Box::new(Expr::Variable{name, line}),
                                     operator: Token {
                                         tt: match self.previous().tt {
                                             TokenType::PlusEqual => TokenType::Plus,
@@ -305,10 +316,12 @@ impl<'a> Parser<'a> {
                                             _ => panic!("unreachable?"),
                                         },
                                         literal: None,
-                                        line: 0,
+                                        line,
                                     },
                                     right: Box::new(self.logical()),
+                                    line,
                                 }),
+                                line,
                             }
                         }
                         _ => {
@@ -331,10 +344,12 @@ impl<'a> Parser<'a> {
         while self.match_tokens(&[TokenType::And, TokenType::Or]) {
             let operator = self.previous().clone();
             let right: Expr = self.equality();
+            let line = operator.line;
             left = Expr::Binary {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
+                line,
             };
         }
         left
@@ -345,10 +360,12 @@ impl<'a> Parser<'a> {
         if self.match_tokens(&[TokenType::BangEqual, TokenType::EqualEqual]) {
             let operator = self.previous().clone();
             let right: Expr = self.comparison();
+            let line = operator.line;
             return Expr::Binary {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
+                line,
             };
         }
         left
@@ -364,10 +381,12 @@ impl<'a> Parser<'a> {
         ]) {
             let operator = self.previous().clone();
             let right: Expr = self.term();
+            let line = operator.line;
             return Expr::Binary {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
+                line,
             };
         }
         left
@@ -378,10 +397,12 @@ impl<'a> Parser<'a> {
         while self.match_tokens(&[TokenType::Plus, TokenType::Minus]) {
             let operator = self.previous().clone();
             let right: Expr = self.term();
+            let line = operator.line;
             return Expr::Binary {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
+                line,
             };
         }
         left
@@ -392,10 +413,12 @@ impl<'a> Parser<'a> {
         while self.match_tokens(&[TokenType::Slash, TokenType::Star, TokenType::Modulo]) {
             let operator = self.previous().clone();
             let right: Expr = self.unary();
+            let line = operator.line;
             left = Expr::Binary {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
+                line
             };
         }
         left
@@ -405,9 +428,11 @@ impl<'a> Parser<'a> {
         if self.match_tokens(&[TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous().clone();
             let e = self.unary();
+            let line = operator.line;
             return Expr::Unary {
                 operator,
                 expression: Box::new(e),
+                line,
             };
         }
         self.call()
@@ -415,14 +440,16 @@ impl<'a> Parser<'a> {
 
     fn call(&mut self) -> Expr {
         let expr = self.primary();
+        let line = self.previous().line;
         if self.match_tokens(&[TokenType::LeftParen]) {
-            if !matches!(expr, Expr::Variable(_)) {
+            if !matches!(expr, Expr::Variable{..}) {
                 self.error("undefined function call");
             }
             if self.match_tokens(&[TokenType::RightParen]) {
                 return Expr::Call {
                     callee: Box::new(expr),
                     arguments: Vec::new(),
+                    line,
                 };
             }
             let mut vec: Vec<Expr> = Vec::new();
@@ -434,6 +461,7 @@ impl<'a> Parser<'a> {
             return Expr::Call {
                 callee: Box::new(expr),
                 arguments: vec,
+                line,
             };
         }
         expr
@@ -442,15 +470,15 @@ impl<'a> Parser<'a> {
     fn primary(&mut self) -> Expr {
         if self.match_tokens(&[TokenType::Value]) {
             match self.previous().clone().literal {
-                Some(Value::Bool(b)) => return Expr::Literal(Value::Bool(b)),
-                Some(Value::Int(n)) => return Expr::Literal(Value::Int(n)),
-                Some(Value::Float(n)) => return Expr::Literal(Value::Float(n)),
-                Some(Value::String(s)) => return Expr::Literal(Value::String(s)),
+                Some(Value::Bool(b)) => return Expr::Literal{val: Value::Bool(b), line: self.previous().line},
+                Some(Value::Int(n)) => return Expr::Literal{val: Value::Int(n), line: self.previous().line},
+                Some(Value::Float(n)) => return Expr::Literal{val: Value::Float(n), line: self.previous().line},
+                Some(Value::String(s)) => return Expr::Literal{val: Value::String(s), line: self.previous().line},
                 _ => panic!("kys"),
             }
         }
         if self.match_tokens(&[TokenType::Identifier]) {
-            return Expr::Variable(self.previous().clone());
+            return Expr::Variable{name: self.previous().clone(), line: self.previous().line};
         }
         if self.match_tokens(&[TokenType::LeftParen]) {
             let expression = self.logical();
