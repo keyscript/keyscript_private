@@ -46,7 +46,7 @@
         })
         .then(result => {
             let max = 100;
-            const returnValue = result.instance.exports.findPrimes(BigInt(max)); // use BigInt for ints, use exports.<function name> for functions.
+            const returnValue = result.instance.exports.findPrimes(max); // use BigInt for ints, use exports.<function name> for functions.
             if (returnValue) {
                 document.getElementById('output').textContent = `the amount prime numbers from 0 to ${max} is: ${returnValue}`;
             } else {

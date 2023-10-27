@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use wasm_encoder::{BlockType, CodeSection, ConstExpr, DataSection, DataSegment, EntityType, ExportKind, ExportSection, Function, FunctionSection, ImportSection, Instruction, MemorySection, MemoryType, Module, TypeSection, ValType};
 use std::fs;
-use colored::Colorize;
 use crate::{ast::Expr, scanner::{Value, TokenType}};
 use crate::ast::Stmt;
 use crate::errors::KeyScriptError;
 use wasmparser::Parser;
+use std::fs::metadata;
+use std::io::Write;
+use colored::Colorize;
 
 //REMINDER of wasm structure:
 //first types
@@ -27,10 +29,11 @@ pub struct Compiler {
     offsets: HashMap<i32, i32>, //offset, length
     string_vars: HashMap<String, i32>, //name, offset
     kys_funcs: Vec<Stmt>,
+    js: bool,
 }
 
 impl Compiler {
-    pub fn new(code: Vec<Stmt>, vars1: Vec<TokenType>, filename: &str) -> Compiler {
+    pub fn new(code: Vec<Stmt>, vars1: Vec<TokenType>, filename: &str, js: bool) -> Compiler {
         Compiler {
             module: Module::new(),
             vars: HashMap::new(),
@@ -42,7 +45,8 @@ impl Compiler {
             strings: Vec::new(),
             offsets: HashMap::new(),
             string_vars: HashMap::new(),
-            kys_funcs: Vec::new()
+            kys_funcs: Vec::new(),
+            js,
         }
     }
 
@@ -55,7 +59,7 @@ impl Compiler {
                 _ => break,
             }
         }
-        let counter = 2;
+        let mut counter = 2;
         for i in self.kys_funcs.iter() {
             match i {
                 Stmt::Fn {
@@ -64,6 +68,7 @@ impl Compiler {
                     ..
                 } => {
                     self.funcs.insert(name.clone(), (counter, return_type.clone()));
+                    counter += 1;
                 }
                 _ => self.error("unreachable?"),
             }
@@ -88,7 +93,7 @@ impl Compiler {
                     self.offsets.insert(self.strings.len() as i32 - param.1.literal.clone().unwrap().as_str().len() as i32, param.1.literal.clone().unwrap().as_str().len() as i32);
                     self.string_vars.insert(param.1.literal.clone().unwrap().as_str().to_string(), self.strings.len() as i32 - param.1.literal.clone().unwrap().as_str().len() as i32);
                     params1.push(match param.0 {
-                        TokenType::Int => ValType::I64,
+                        TokenType::Int => ValType::I32,
                         TokenType::Float => ValType::F64,
                         TokenType::Bool => ValType::I32,
                         TokenType::String => ValType::I32,
@@ -97,7 +102,7 @@ impl Compiler {
                 }
                 let mut results1 = vec![];
                 match return_type {
-                    TokenType::Int => results1.push(ValType::I64),
+                    TokenType::Int => results1.push(ValType::I32),
                     TokenType::Float => results1.push(ValType::F64),
                     TokenType::Bool => results1.push(ValType::I32),
                     TokenType::String => results1.push(ValType::I32),
@@ -137,7 +142,7 @@ impl Compiler {
         //     shared: false,
         // });
         // self.module.section(&memory);
-
+        let mut func_names: Vec<String> = vec!["main".to_string()];
         let mut exports = ExportSection::new();
         exports.export("main", ExportKind::Func, 1);
         counter = 2;
@@ -146,6 +151,7 @@ impl Compiler {
                 name,
                 ..
             } = i {
+                func_names.push(name.clone());
                 exports.export(name.as_str(), ExportKind::Func, counter);
                 counter += 1;
             }
@@ -156,7 +162,7 @@ impl Compiler {
         let mut locals = vec![];
         for var in &self.vars1 {
             match var {
-                TokenType::Int => locals.push((1,ValType::I64)),
+                TokenType::Int => locals.push((1,ValType::I32)),
                 TokenType::Float => locals.push((1,ValType::F64)),
                 TokenType::Bool => locals.push((1,ValType::I32)),
                 TokenType::String => locals.push((1,ValType::I32)),
@@ -184,7 +190,7 @@ impl Compiler {
                     } => {
                         for var in vars {
                             match var {
-                                TokenType::Int => locals.push((1, ValType::I64)),
+                                TokenType::Int => locals.push((1, ValType::I32)),
                                 TokenType::Float => locals.push((1, ValType::F64)),
                                 TokenType::Bool => locals.push((1, ValType::I32)),
                                 TokenType::String => locals.push((1, ValType::I32)),
@@ -223,6 +229,68 @@ impl Compiler {
         fs::write(&self.path, &wasm_bytes).expect("Failed to write Wasm to file");
         if is_wat {
             fs::write(&self.path.replace(".wasm", ".wat"), wasmprinter::print_file(&self.path).unwrap()).expect("Failed to write Wat to file");
+        }
+        if self.js {
+            let name = self.path.replace(".wasm", ".html");
+            //check if there is already a file
+            if metadata(&name).is_err() {
+                let mut html_code = r#"<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+<script>
+    let imports = {
+        wasm: {
+            memory: new WebAssembly.Memory({initial: 256}), // 1 page = 64KB, 256 pages = much storage
+        },
+        console: {
+            log: function (offset, length) {
+                console.log(new TextDecoder('utf8').decode(new Uint8Array(imports.wasm.memory.buffer, offset, length)));
+            }
+        }
+    };
+"#.to_string();
+                html_code.push_str(r#"    function null_func() {
+        console.log("ERROR! KeyScript file not loaded yet!");
+    }
+"#);
+                html_code.push_str("    //the keyscript functions: ");
+                for i in func_names.clone() {
+                    html_code.push_str(format!("\n    let {}_func = null_func;", i).as_str());
+                }
+                html_code.push_str(r#"
+    fetch('"#);
+                html_code.push_str(self.path.as_str());
+                html_code.push_str(r#"')
+        .then(response => response.arrayBuffer())
+        .then(bytes => {
+            return WebAssembly.instantiate(bytes, imports)
+        })
+        .then(result => {"#);
+                for i in func_names {
+                    html_code.push_str(format!("\n            {}_func = result.instance.exports.{};", i, i).as_str());
+                }
+
+                html_code.push_str(r#"
+            //do something cool with those functions ;) use func(params..) to call them
+        })
+        .catch(error => {
+            document.getElementById('error').textContent = `Error loading WebAssembly: ${error.message}`;
+        })
+</script>
+</body>
+</html>"#);
+                let mut file = std::fs::File::create(&name).unwrap();
+                file.write_all(html_code.as_bytes()).expect("Failed to write HTML code to file");
+            } else {
+                println!("{}", "[GEN ERROR] couldn't generate html: file already exists".red());
+            }
         }
     }
 
@@ -289,7 +357,7 @@ impl Compiler {
                     }
                 } else {
                     match t {
-                        TokenType::Int => {function.instruction(&Instruction::I64Const(0));},
+                        TokenType::Int => {function.instruction(&Instruction::I32Const(0));},
                         TokenType::Float => {function.instruction(&Instruction::F64Const(0.0));},
                         TokenType::Bool => {function.instruction(&Instruction::I32Const(0));},
                         TokenType::String => {function.instruction(&Instruction::I32Const(0));},
@@ -366,7 +434,7 @@ impl Compiler {
             Expr::Literal(val) => {
                 return match val {
                     Value::Int(n) => {
-                        function.instruction(&Instruction::I64Const(n));
+                        function.instruction(&Instruction::I32Const(n));
                         Value::Int(n)
                     },
                     Value::Float(n) => {
@@ -470,7 +538,7 @@ impl Compiler {
                 }
                 match *callee {
                     Expr::Variable(t) => {
-                        function.instruction(&Instruction::Call(self.funcs.get(&t.literal.clone().unwrap().as_str()).unwrap().0));
+                        function.instruction(&Instruction::Call(self.funcs.get(&t.literal.clone().unwrap().as_str()).unwrap().0)); //todo use name to number
                         match self.funcs.get(&t.literal.clone().unwrap().as_str()).unwrap().1 {
                             TokenType::Int => Value::Int(0),
                             TokenType::Float => Value::Float(0.0),
@@ -537,17 +605,17 @@ impl Compiler {
         match (t1, t2) {
             (Value::Int(_), Value::Int(_)) => {
                 match operator {
-                    TokenType::Plus => {function.instruction(&Instruction::I64Add); Value::Int(0)},
-                    TokenType::Minus => {function.instruction(&Instruction::I64Sub); Value::Int(0)},
-                    TokenType::Star => {function.instruction(&Instruction::I64Mul); Value::Int(0)},
-                    TokenType::Slash => {function.instruction(&Instruction::I64DivU); Value::Int(0)},
-                    TokenType::EqualEqual => {function.instruction(&Instruction::I64Eq); Value::Bool(true)},
-                    TokenType::BangEqual => {function.instruction(&Instruction::I64Ne); Value::Bool(true)},
-                    TokenType::Less => {function.instruction(&Instruction::I64LtU); Value::Bool(true)},
-                    TokenType::LessEqual => {function.instruction(&Instruction::I64LeU); Value::Bool(true)},
-                    TokenType::Greater => {function.instruction(&Instruction::I64GtU); Value::Bool(true)},
-                    TokenType::GreaterEqual => {function.instruction(&Instruction::I64GeU); Value::Bool(true)},
-                    TokenType::Modulo => {function.instruction(&Instruction::I64RemU); Value::Int(0)},
+                    TokenType::Plus => {function.instruction(&Instruction::I32Add); Value::Int(0)},
+                    TokenType::Minus => {function.instruction(&Instruction::I32Sub); Value::Int(0)},
+                    TokenType::Star => {function.instruction(&Instruction::I32Mul); Value::Int(0)},
+                    TokenType::Slash => {function.instruction(&Instruction::I32DivU); Value::Int(0)},
+                    TokenType::EqualEqual => {function.instruction(&Instruction::I32Eq); Value::Bool(true)},
+                    TokenType::BangEqual => {function.instruction(&Instruction::I32Ne); Value::Bool(true)},
+                    TokenType::Less => {function.instruction(&Instruction::I32LtU); Value::Bool(true)},
+                    TokenType::LessEqual => {function.instruction(&Instruction::I32LeU); Value::Bool(true)},
+                    TokenType::Greater => {function.instruction(&Instruction::I32GtU); Value::Bool(true)},
+                    TokenType::GreaterEqual => {function.instruction(&Instruction::I32GeU); Value::Bool(true)},
+                    TokenType::Modulo => {function.instruction(&Instruction::I32RemU); Value::Int(0)},
                     _ => {self.error("unreachable?"); Value::Bool(true)},
                 }
             }
@@ -596,8 +664,8 @@ impl Compiler {
             Value::Int(_) => {
                 match operator {
                     TokenType::Minus => {
-                        function.instruction(&Instruction::I64Const(-1));
-                        function.instruction(&Instruction::I64Mul);
+                        function.instruction(&Instruction::I32Const(-1));
+                        function.instruction(&Instruction::I32Mul);
                     },
                     _ => self.error("undefined unary operation for type int"),
                 };
@@ -610,7 +678,7 @@ impl Compiler {
             }
             Value::Bool(_) => {
                 match operator {
-                    TokenType::Bang => {function.instruction(&Instruction::I64Eqz);},
+                    TokenType::Bang => {function.instruction(&Instruction::I32Eqz);},
                     _ => self.error("undefined unary operation for type boolean"),
                 };
             }

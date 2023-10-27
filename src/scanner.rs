@@ -185,7 +185,7 @@ impl<'a> Scanner<'a> {
             }
             self.make_token(TokenType::Value, Some(Value::Float(number.parse::<f64>().unwrap())));
         } else {
-            self.make_token(TokenType::Value, Some(Value::Int(number.parse::<i64>().unwrap())));
+            self.make_token(TokenType::Value, Some(Value::Int(number.parse::<i32>().unwrap())));
         }
     }
 
@@ -241,7 +241,7 @@ impl<'a> Scanner<'a> {
 pub enum Value {
     String(String),
     Float(f64),
-    Int(i64),
+    Int(i32),
     Bool(bool),
     Index(i32),
 }

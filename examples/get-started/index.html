@@ -46,7 +46,7 @@
             return WebAssembly.instantiate(bytes, imports)
         })
         .then(result => {
-            const returnValue = result.instance.exports.fib(BigInt(40)); // use BigInt for ints, use exports.<function name> for functions.
+            const returnValue = result.instance.exports.fib(40); // use BigInt for ints, use exports.<function name> for functions.
             if (returnValue) {
                 document.getElementById('output').textContent = `Function returned: ${returnValue}`;
             } else {

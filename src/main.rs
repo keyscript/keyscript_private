@@ -20,8 +20,14 @@ fn main() {
     }
     let file_name;
     let mut is_wat = false;
+    let mut js = false;
     if args.len() > 2 && args [2] == "debug" {
         is_wat = true;
+    } else if args.len() > 2 && args [2] == "gen" {
+        js = true;
+    }
+    if args.len() > 3 && args [3] == "gen" {
+        js = true;
     }
     if &args[1] == "init" {
         let loop_code = r#"int fib(int n) {
@@ -30,7 +36,7 @@ fn main() {
     }
     return fib(n - 1) + fib(n - 2);
 }"#;
-        let mut file = std::fs::File::create("index.kys").unwrap();
+        let mut file = std::fs::File::create("../test.kys").unwrap();
         file.write_all(loop_code.as_bytes()).expect("Failed to write to file");
         let html_code = r#"<!DOCTYPE html>
 <html>
@@ -79,7 +85,7 @@ fn main() {
             return WebAssembly.instantiate(bytes, imports)
         })
         .then(result => {
-            const returnValue = result.instance.exports.fib(BigInt(40)); // use BigInt for ints, use exports.<function name> for functions.
+            const returnValue = result.instance.exports.fib(40); // use BigInt for ints, use exports.<function name> for functions.
             if (returnValue) {
                 document.getElementById('output').textContent = `Function returned: ${returnValue}`;
             } else {
@@ -97,7 +103,7 @@ fn main() {
 
         let mut file = std::fs::File::create("index.html").unwrap();
         file.write_all(html_code.as_bytes()).expect("Failed to write HTML code to file");
-        file_name = "index.kys";
+        file_name = "test.kys";
     } else {
         file_name = &args[1];
     }
@@ -126,7 +132,7 @@ fn main() {
             //     println!("{:?}", i);
             // }
             let mut parser = parser::Parser::new(tokens, main_file_name);
-            let mut comp = compiler::Compiler::new(parser.parse(), parser.vars, file_name);
+            let mut comp = compiler::Compiler::new(parser.parse(), parser.vars, file_name, js);
             // println!("{:?}", parser.parse());
             comp.compile(is_wat);
 
@@ -136,7 +142,6 @@ fn main() {
 
 //todo list:
 //polish the error messages
-//auto generate js functions
 //release!
 //infinite loop detection
 //strings in loops (how tf do you use strings in wasm)

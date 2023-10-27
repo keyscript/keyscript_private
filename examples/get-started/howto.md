@@ -33,7 +33,10 @@ to write new code using keyscript (after the steps listed above are completed):
 - recompile with the contents (cargo run ./index.kys)  
 
 - optional: generate a **new** readable webassembly (.wat) file to reflect any changes made  
-`cargo run ./index.kys debug`  
+`cargo run ./index.kys debug`
+
+- optional #2: generate the necessary js code to import the functions automatically using `gen` at the end:
+- `cargo run ./index.kys gen` / `cargo run ./index.kys debug gen`
 
 - within index.html find the line containing the following code (line 48)  
 `const returnValue = result.instance.exports.fib(BigInt(40));`  
