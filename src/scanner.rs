@@ -1,8 +1,6 @@
 use crate::errors::KeyScriptError;
 use std::iter::Peekable;
 use std::str::Chars;
-use log::error;
-use crate::errors::KeyScriptError::Error;
 
 pub struct Scanner<'a> {
     pub source: &'a str,
@@ -261,7 +259,7 @@ impl Value {
             }
             Value::Float(float) => float.to_string(),
             Value::Int(int) => int.to_string(),
-            _ => Error::error(Error::Error, Some("cannot convert value to string"), None, None),
+            _ => {KeyScriptError::error(KeyScriptError::ScannerError, Some("cannot convert value to string"), None, None); std::process::exit(0);},
         }
     }
 }

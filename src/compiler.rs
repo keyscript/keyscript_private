@@ -1,10 +1,9 @@
 use std::collections::HashMap;
-use wasm_encoder::{BlockType, CodeSection, ConstExpr, DataSection, DataSegment, EntityType, ExportKind, ExportSection, Function, FunctionSection, ImportSection, Instruction, MemorySection, MemoryType, Module, TypeSection, ValType};
+use wasm_encoder::{BlockType, CodeSection, ConstExpr, DataSection, EntityType, ExportKind, ExportSection, Function, FunctionSection, ImportSection, Instruction, MemoryType, Module, TypeSection, ValType};
 use std::fs;
 use crate::{ast::Expr, scanner::{Value, TokenType}};
 use crate::ast::Stmt;
 use crate::errors::KeyScriptError;
-use wasmparser::Parser;
 use std::fs::metadata;
 use std::io::Write;
 use colored::Colorize;
@@ -211,7 +210,6 @@ impl Compiler {
         self.module.section(&data);
 
         let wasm_bytes = self.module.clone().finish();
-        let mut validator = Parser::new(0);
         if !self.path.ends_with(".wasm") {
             self.path = "output.wasm".to_string();
         }
@@ -332,7 +330,6 @@ impl Compiler {
                 if let Some(value) = value {
                     let val1 = self.compile_expr(function, value);
                     let s = val1.as_str();
-                    let len = s.len() as i32;
                     let index = self.make_string(s);
                     self.string_vars.insert(name.literal.clone().unwrap().as_str().to_string(), index);
                     match val1.clone() {
@@ -482,7 +479,6 @@ impl Compiler {
                 }
                 function.instruction(&Instruction::LocalSet(self.vars.get(&name.literal.clone().unwrap().as_str()).unwrap().0));
                 let s = val.as_str();
-                let len = s.len() as i32;
                 let index = self.make_string(s);
                 self.string_vars.insert(name.literal.clone().unwrap().as_str().to_string(), index);
                 Value::Int(0)
@@ -564,7 +560,7 @@ impl Compiler {
             } => {
                 let t1 = self.compile_str(function, *left, line);
                 let t2 = self.compile_str(function, *right, line);
-                self.add_strings(function, t1, t2, line)
+                self.add_strings(t1, t2, line)
             }
             Expr::Literal{
                 val,
@@ -591,7 +587,6 @@ impl Compiler {
                 }
                 match *callee {
                     Expr::Variable {
-                        name,
                         ..
                     } => {
                         // let func_num = self.funcs.get(&t.literal.clone().unwrap().as_str()).unwrap().0;
@@ -640,7 +635,7 @@ impl Compiler {
                 }
             }
             (Value::Index(s), Value::Index(s1)) => {
-                return Value::Index(self.add_strings(function, *s, *s1, line));
+                return Value::Index(self.add_strings(*s, *s1, line));
             }
             (Value::Int(_), _) => {
                 {self.error("Cannot execute this operation on different types, use 2 ints", Some(line)); Value::Bool(true)}
@@ -691,7 +686,7 @@ impl Compiler {
         }
     }
 
-    fn add_strings(&mut self, function: &mut Function, t1: i32, t2: i32, line: usize) -> i32 {
+    fn add_strings(&mut self, t1: i32, t2: i32, line: usize) -> i32 {
         //takes 2 indexes to strings and return an index to the new string
         self.offsets.get(&t1).unwrap_or_else(|| {
             self.error("undefined string", Some(line));

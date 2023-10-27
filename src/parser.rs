@@ -151,7 +151,7 @@ impl<'a> Parser<'a> {
     }
 
     fn print_stmt(&mut self) -> Stmt {
-        let expr = self.logical(); // only can have binary(+) with primary
+        let expr = self.parse_print(); // only can have binary(+) with primary
         self.consume(TokenType::Semicolon, "expected \";\" after print statement");
         Stmt::Print {
             expr,
@@ -160,7 +160,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_print(&mut self) -> Expr {
-        let mut left: Expr = self.primary();
+        let left: Expr = self.primary();
         while self.match_tokens(&[TokenType::Plus]) {
             let operator = self.previous().clone();
             let right: Expr = self.parse_print();

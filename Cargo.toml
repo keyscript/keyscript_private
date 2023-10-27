@@ -3,6 +3,9 @@ name = "keyscript"
 version = "0.1.0"
 edition = "2021"
 
+[target.x86_64-unknown-linux-unknown]
+linker = "rust-lld"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -10,4 +13,3 @@ colored = { version = "2.0.4", features = [] }
 wasm-encoder = "0.35.0"
 wasmprinter = "0.2.70"
 wasmparser = "0.115.0"
-log = "0.4.20"
