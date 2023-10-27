@@ -160,19 +160,19 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_print(&mut self) -> Expr {
-        let left: Expr = self.primary();
+        let mut left: Expr = self.primary();
         while self.match_tokens(&[TokenType::Plus]) {
             let operator = self.previous().clone();
             let right: Expr = self.parse_print();
             let line = operator.line;
-            return Expr::Binary {
+            left = Expr::Binary {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
                 line,
             };
         }
-        self.primary()
+        left
     }
 
     fn return_stmt(&mut self) -> Stmt {
