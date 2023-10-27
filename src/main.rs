@@ -36,7 +36,7 @@ fn main() {
     }
     return fib(n - 1) + fib(n - 2);
 }"#;
-        let mut file = std::fs::File::create("../test.kys").unwrap();
+        let mut file = std::fs::File::create("index.kys").unwrap();
         file.write_all(loop_code.as_bytes()).expect("Failed to write to file");
         let html_code = r#"<!DOCTYPE html>
 <html>
@@ -103,7 +103,7 @@ fn main() {
 
         let mut file = std::fs::File::create("index.html").unwrap();
         file.write_all(html_code.as_bytes()).expect("Failed to write HTML code to file");
-        file_name = "test.kys";
+        file_name = "index.kys";
     } else {
         file_name = &args[1];
     }
