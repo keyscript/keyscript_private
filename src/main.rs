@@ -141,7 +141,6 @@ fn main() {
 }
 
 //todo list:
-//polish the error messages, erase all panics.
 //release!
 //infinite loop detection
 //strings in loops (how tf do you use strings in wasm)

@@ -75,7 +75,7 @@ impl<'a> Parser<'a> {
             let name = self.previous().clone();
             if self.match_tokens(&[TokenType::LeftParen]) {
                 self.error("cannot have a function declaration inside a block");
-                panic!("kys")
+                std::process::exit(0);
             } else {
                 vars.push(t.tt);
                 return self.var_decl(name, t)
@@ -106,7 +106,7 @@ impl<'a> Parser<'a> {
         Stmt::Fn {
             name: match name.literal {
                 Some(Value::String(s)) => s,
-                _ => panic!("unreachable?"),
+                _ => {self.error("function name must be a string"); std::process::exit(0);}
             },
             params,
             body,
@@ -313,7 +313,7 @@ impl<'a> Parser<'a> {
                                             TokenType::MinusEqual => TokenType::Minus,
                                             TokenType::StarEqual => TokenType::Star,
                                             TokenType::SlashEqual => TokenType::Slash,
-                                            _ => panic!("unreachable?"),
+                                            _ => {self.error("incorrect token at assignment"); std::process::exit(0);},
                                         },
                                         literal: None,
                                         line,
@@ -325,14 +325,14 @@ impl<'a> Parser<'a> {
                             }
                         }
                         _ => {
-                            self.error("value incorrect");
-                            panic!();
+                            self.error("after a =, must have an assignment");
+                            std::process::exit(0);
                         }
                     }
                 }
                 _ => {
                     self.error("cannot assign to a non variable");
-                    panic!();
+                    std::process::exit(0);
                 }
             }
         }
@@ -443,7 +443,7 @@ impl<'a> Parser<'a> {
         let line = self.previous().line;
         if self.match_tokens(&[TokenType::LeftParen]) {
             if !matches!(expr, Expr::Variable{..}) {
-                self.error("undefined function call");
+                self.error("function call must be a variable (name of function)");
             }
             if self.match_tokens(&[TokenType::RightParen]) {
                 return Expr::Call {
@@ -474,7 +474,7 @@ impl<'a> Parser<'a> {
                 Some(Value::Int(n)) => return Expr::Literal{val: Value::Int(n), line: self.previous().line},
                 Some(Value::Float(n)) => return Expr::Literal{val: Value::Float(n), line: self.previous().line},
                 Some(Value::String(s)) => return Expr::Literal{val: Value::String(s), line: self.previous().line},
-                _ => panic!("kys"),
+                _ => {self.error("parser cannot process string reference"); std::process::exit(0);}
             }
         }
         if self.match_tokens(&[TokenType::Identifier]) {
@@ -484,11 +484,12 @@ impl<'a> Parser<'a> {
             let expression = self.logical();
             self.consume(
                 TokenType::RightParen,
-                "expected \")\" after expression u piece of shit",
+                "expected \")\" after expression in grouping",
             );
             return Expr::Grouping(Box::new(expression));
         }
-        panic!("kys");
+        self.error("primary must be a value, grouping or an identifier");
+        std::process::exit(0);
     }
     fn match_tokens(&mut self, types: &[TokenType]) -> bool {
         for tt in types {
@@ -534,6 +535,6 @@ impl<'a> Parser<'a> {
             return self.advance();
         }
         self.error(msg);
-        panic!("kys");
+        std::process::exit(0);
     }
 }

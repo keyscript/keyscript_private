@@ -99,7 +99,7 @@ impl Compiler {
                         TokenType::Float => ValType::F64,
                         TokenType::Bool => ValType::I32,
                         TokenType::String => ValType::I32,
-                        _ => panic!("unreachable?"),
+                        _ => {self.error("function cannot have a string index as a variable", None); std::process::exit(0);},
                     });
                 }
                 let mut results1 = vec![];
@@ -109,7 +109,7 @@ impl Compiler {
                     TokenType::Bool => results1.push(ValType::I32),
                     TokenType::String => results1.push(ValType::I32),
                     TokenType::Void => {},
-                    _ => panic!("unreachable?"),
+                    _ => {self.error("function cannot have a string index as a variable", None); std::process::exit(0);},
                 }
                 types.function(params1, results1);
             }
@@ -193,7 +193,7 @@ impl Compiler {
                 for param in params {
                     self.vars.insert(match param.1.literal.clone().unwrap() {
                         Value::String(s) => s,
-                        _ => panic!("unreachable?"),
+                        _ => {self.error("param name must be a string", Some(line)); std::process::exit(0);},
                     }, (self.vars_count, param.0));
                     self.vars_count += 1;
                 }
@@ -444,7 +444,7 @@ impl Compiler {
                     Value::String(s) => {
                         Value::Index(self.make_string(s))
                     },
-                    _ => {self.error("undefined value (a string refrence isnt a value)", Some(line)); Value::Int(0)}
+                    _ => {self.error("undefined value (a string reference isn't a value)", Some(line)); Value::Int(0)}
                 }
             },
             Expr::Assign {
@@ -478,7 +478,7 @@ impl Compiler {
                             self.error(format!("Cannot assign non-string value to variable \"{}\" of type String", name.literal.clone().unwrap().as_str()).as_str(), Some(line));
                         }
                     },
-                    _ => self.error("cannot assign a string reference", Some(line)),
+                    _ => self.error("cannot assign a string reference to a variable", Some(line)),
                 }
                 function.instruction(&Instruction::LocalSet(self.vars.get(&name.literal.clone().unwrap().as_str()).unwrap().0));
                 let s = val.as_str();
@@ -500,17 +500,17 @@ impl Compiler {
             Expr::Variable{name, line} => {
                 function.instruction(&Instruction::LocalGet(self.vars.get(&name.literal.clone().unwrap_or_else(|| {
                     self.error(&format!("cannot get variable {}, perhaps it contains a function call?", name.literal.clone().unwrap().as_str()), Some(line));
-                    panic!()
+                    std::process::exit(0);
                 }).as_str()).unwrap_or_else(|| {
                     self.error(&format!("cannot get variable {}, perhaps it contains a function call?", name.literal.clone().unwrap().as_str()), Some(line));
-                    panic!()
+                    std::process::exit(0);
                 }).0));
                 match self.vars.get(&name.literal.clone().unwrap_or_else(|| {
                     self.error(&format!("cannot get variable {}, perhaps it contains a function call?", name.literal.clone().unwrap().as_str()), Some(line));
-                    panic!()
+                    std::process::exit(0);
                 }).as_str()).unwrap_or_else(|| {
                     self.error(&format!("cannot get variable {}, perhaps it contains a function call?", name.literal.clone().unwrap().as_str()), Some(line));
-                    panic!()
+                    std::process::exit(0);
                 }).1 {
                     TokenType::Int => Value::Int(0),
                     TokenType::Float => Value::Float(0.0),
@@ -578,7 +578,7 @@ impl Compiler {
             } => {
                 return self.string_vars.get(&name.literal.clone().unwrap().as_str()).unwrap_or_else(|| {
                     self.error(&format!("cannot stringify variable {}", name.literal.clone().unwrap().as_str()), Some(line));
-                    panic!()
+                    std::process::exit(0);
                 }).clone();
             }
             Expr::Call {
@@ -660,7 +660,7 @@ impl Compiler {
             (Value::Bool(_), _) => {
                 {self.error("Cannot execute this operation on different types, use 2 booleans", Some(line)); Value::Bool(true)}
             }
-            _ => {self.error("undefined operation", Some(line)); Value::Bool(true)}
+            _ => {self.error(format!("undefined operation {:?}", operator).as_str(), Some(line)); Value::Bool(true)}
         }
     }
 
@@ -695,11 +695,11 @@ impl Compiler {
         //takes 2 indexes to strings and return an index to the new string
         self.offsets.get(&t1).unwrap_or_else(|| {
             self.error("undefined string", Some(line));
-            panic!()
+            std::process::exit(0);
         });
         self.offsets.get(&t2).unwrap_or_else(|| {
             self.error("undefined string", Some(line));
-            panic!()
+            std::process::exit(0);
         });
         let mut s = String::new();
         for &t in &[t1, t2] {
@@ -723,7 +723,7 @@ impl Compiler {
     fn print_wasm(&mut self, f: &mut Function, offset: i32, line: usize) {
         let length = self.offsets.get(&offset).unwrap_or_else(|| {
             self.error("undefined string", Some(line));
-            panic!()
+            std::process::exit(0);
         });
         f.instruction(&Instruction::I32Const(offset));
         f.instruction(&Instruction::I32Const(*length));

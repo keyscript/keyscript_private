@@ -1,6 +1,8 @@
 use crate::errors::KeyScriptError;
 use std::iter::Peekable;
 use std::str::Chars;
+use log::error;
+use crate::errors::KeyScriptError::Error;
 
 pub struct Scanner<'a> {
     pub source: &'a str,
@@ -112,7 +114,7 @@ impl<'a> Scanner<'a> {
                         self.chars.next();
                         self.make_token(TokenType::And, None);
                     } else {
-                        self.error("expected &");
+                        self.error("expected & and & for and operator");
                     }
                 }
                 '|' => {
@@ -120,7 +122,7 @@ impl<'a> Scanner<'a> {
                         self.chars.next();
                         self.make_token(TokenType::Or, None);
                     } else {
-                        self.error("expected |");
+                        self.error("expected | after | for or operator");
                     }
                 }
                 '"' => self.string(),
@@ -134,7 +136,7 @@ impl<'a> Scanner<'a> {
                     } else if ch.is_ascii_alphabetic() {
                         self.identifier(ch);
                     } else {
-                        self.error("unexpected character");
+                        self.error(format!("unknown character {}", ch).as_str());
                         self.had_error = true;
                     }
                 }
@@ -259,7 +261,7 @@ impl Value {
             }
             Value::Float(float) => float.to_string(),
             Value::Int(int) => int.to_string(),
-            _ => panic!("cannot convert value to string"),
+            _ => Error::error(Error::Error, Some("cannot convert value to string"), None, None),
         }
     }
 }
