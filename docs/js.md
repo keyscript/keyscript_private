@@ -1,10 +1,10 @@
 # Using Your KeyScript Code with JavaScript
-KeyScript is a language that compiles to WebAssembly. To use your KeyScript code, you need to import the functions into JavaScript and use them there.
+Keyscript is a language that compiles to WebAssembly. To use your keyscript code, you need to import the functions into JavaScript and use them there.
 
 ## Importing KeyScript Functions into JavaScript
 There are three ways to import KeyScript functions into JavaScript:
 1. Using the `./keyscript ./file.kys gen` Command:
-    - This command generates a `file.html` file containing the necessary JavaScript code for importing all the KeyScript functions you created.
+    - This command generates a `file.html` file containing the necessary JavaScript code for importing all the Keyscript functions you created.
 
 2. Importing Using a JavaScript Promise:
    - First, make sure to include the following JavaScript code:
@@ -20,7 +20,7 @@ There are three ways to import KeyScript functions into JavaScript:
         }
    };
    ```
-    - Then, use the following code to import the KeyScript functions:
+    - Then, use the following code to import the Keyscript functions:
     ```javascript
     fetch('index.wasm') // file name!!
         .then(response => response.arrayBuffer())
@@ -40,8 +40,8 @@ There are three ways to import KeyScript functions into JavaScript:
             document.getElementById('error').textContent = `Error loading WebAssembly: ${error.message}`;
         })
     ```
-   - the provided file also contains a bit of error handling and output representation.
-   - to import a function, use `func = result.instance.exports.function_name`. you can now use `func` as a normal JavaScript function, by calling it with `func(params)`.
+   - The provided file also contains a bit of error handling and output representation.
+   - To import a function, use `func = result.instance.exports.function_name`. you can now use `func` as a normal JavaScript function, by calling it with `func(params)`.
 3. Importing inside a javascript async function:
    - First, make sure to include the following JavaScript code:
    ```javascript
@@ -56,7 +56,7 @@ There are three ways to import KeyScript functions into JavaScript:
         }
    };
    ```
-    - Then, use the following code to import the KeyScript functions:
+    - Then, use the following code to import the Keyscript functions:
     ```javascript
     (async () => {
         const response = await fetch('index.wasm'); // file name!!
@@ -65,4 +65,4 @@ There are three ways to import KeyScript functions into JavaScript:
         const main_func = result.instance.exports.main; // import functions here
     })();
     ```
-   - to import a function, use `func = result.instance.exports.function_name`. you can now use `func` as a normal JavaScript function, by calling it with `func(params)`.
+   - To import a function, use `func = result.instance.exports.function_name`. you can now use `func` as a normal JavaScript function, by calling it with `func(params)`.
