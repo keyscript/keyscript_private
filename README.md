@@ -1,29 +1,29 @@
 # keyscript syntax
 
-- keyscript starts from the first line
-- keyscript types: boolean, int, float, string (arrays will be added in a later version).
+- Keyscript starts from the first line, that is Keyscript's main function.
+- Keyscript's types: `bool`, `int`, `float`, `string`
 - Variable declaration: Use `int identifier = value;` syntax, variables do not require an initial value.
-- Control flow: keyscript uses the `<`, `>`, `<=`, `>=`, `==`, `&&`, `||` operators for control flow.
-- Arithmetic operations: keyscript uses `+`, `-`, `*`, `/`, `%`, `+=`, `-=`, `*=`, `/=` for basic arithmetic operations.
+- Control flow: Keyscript uses the `<`, `>`, `<=`, `>=`, `==`, `&&`, `||` operators for control flow.
+- Arithmetic operations: Keyscript uses `+`, `-`, `*`, `/`, `%`, `+=`, `-=`, `*=`, `/=` for basic arithmetic operations.
 - If statement:
-  `if bool_expression {
+  `if boolean_expression {
   code
   } else {
   code
   }`
 - Loops:
-- While loop: `while bool_expression { code }`
-- for loops will be added in a later version in rust style `for i in 0..10 { code }`
-- import keyscript functions using javascript. check `cargo run init` for example.
-- I/O: keyscript uses `print()` for output, use js for input.
-- keyscript also allows string concatenation `"hi" + " " + "there"` would be `hi there`.
-- functions: keyscript uses the return type with a fucntion name and (parameters) syntax.
-- functions can either return: `bool`, `int`, `float`, `void` (no return type)
-```
+- While loop: `while boolean_expression { code }`
+- I/O: keyscript uses `print()` for output, use JS for input.
+- Keyscript also allows string concatenation `"hi" + " " + "there"` would be `hi there`.
+- Functions: Keyscript uses the return type with a function name and (parameters) syntax.
+- Functions can either return: `bool`, `int`, `float`, `void` (no return type)
+- Example of Keyscript's syntax:
+```C
 int add(int a, int b) {
   return a + b;
 }
 ```
+
 
 ## possible future features
 
